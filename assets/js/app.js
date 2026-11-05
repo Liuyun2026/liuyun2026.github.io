@@ -17,6 +17,8 @@
   var S = SITE;
   var introPending = true;   /* 首页开场动画是否还需要播放 */
   var lastHash = null;       /* 已渲染过的 hash，避免同一地址重复渲染 */
+  var introTimers = [];      /* 开场动画的全部定时器，点击打断时统一清除 */
+  var introRunning = false;
   var pillReady = false;     /* 导航气泡是否已完成首次定位 */
 
   /* ---------- 工具 ---------- */
@@ -479,6 +481,38 @@
    * 收缩用 FLIP：先量出卡片最终位置，反向施加 transform 使其与全屏重合，
    * 再去掉 transform，浏览器自行补间，布局不会错位。
    */
+  function introLater(fn, ms) {
+    introTimers.push(window.setTimeout(fn, ms));
+  }
+
+  function clearIntroTimers() {
+    for (var i = 0; i < introTimers.length; i++) window.clearTimeout(introTimers[i]);
+    introTimers = [];
+  }
+
+  /* 点击打断：立刻收尾到最终状态，不留半截动画 */
+  function skipIntro() {
+    if (!introRunning) return;
+    introRunning = false;
+    clearIntroTimers();
+
+    var card = document.querySelector(".jelly");
+    var layer = document.querySelector(".intro-layer");
+
+    if (card) {
+      card.style.transition = "transform .32s cubic-bezier(.3,1,.4,1), border-radius .28s ease";
+      card.style.transform = "";
+      card.style.borderRadius = "";
+      card.classList.remove("is-intro");
+      window.setTimeout(function () { card.style.transition = ""; }, 340);
+    }
+    if (layer) layer.classList.remove("on");
+
+    document.body.classList.remove("intro-on");
+    document.documentElement.classList.remove("intro-on");
+    window.scrollTo(0, 0);
+  }
+
   function playIntro() {
     var card = document.querySelector(".jelly");
     if (!card) return;
@@ -501,7 +535,9 @@
     /* 字号按放大倍数反算，开场视觉尺寸恒定；收缩时自然一起变小 */
     card.style.setProperty("--cs", s.toFixed(3));
 
+    introRunning = true;
     document.body.classList.add("intro-on");
+    document.documentElement.classList.add("intro-on");
     card.classList.add("is-intro");
     card.style.transformOrigin = "50% 50%";
     card.style.transform = "translate3d(" + dx + "px," + dy + "px,0) scale(" + s + ")";
@@ -511,28 +547,30 @@
 
     /* 串行节奏，总时长约 5 秒：
        你好浮现 → 你好淡出 → 欢迎语浮现 → 停一下 → 收缩 → 开场层淡出 → 内容就位 → 气泡弹起 */
-    window.setTimeout(function () { hello.classList.add("show"); }, 120);
-    window.setTimeout(function () { hello.classList.add("out"); }, 1250);
-    window.setTimeout(function () { welcome.classList.add("in"); }, 1700);
+    introLater(function () { hello.classList.add("show"); }, 120);
+    introLater(function () { hello.classList.add("out"); }, 1250);
+    introLater(function () { welcome.classList.add("in"); }, 1700);
 
-    window.setTimeout(function () {
+    introLater(function () {
       card.style.transition = "transform 1.3s cubic-bezier(.34,1.12,.44,1), border-radius 1.15s ease";
       card.style.transform = "translate3d(0,0,0) scale(1)";
       card.style.borderRadius = "";
     }, 2500);
 
     /* 收缩进行到四成时让文字淡出，再缩下去就糊成一团小字了 */
-    window.setTimeout(function () { welcome.classList.remove("in"); }, 2900);
-    window.setTimeout(function () { layer.classList.remove("on"); }, 3400);
-    window.setTimeout(function () { card.classList.remove("is-intro"); }, 3800);
+    introLater(function () { welcome.classList.remove("in"); }, 2900);
+    introLater(function () { layer.classList.remove("on"); }, 3400);
+    introLater(function () { card.classList.remove("is-intro"); }, 3800);
 
-    window.setTimeout(function () {
+    introLater(function () {
       card.style.transition = "none";
       card.style.transform = "";
       window.setTimeout(function () { card.style.transition = ""; }, 60);
       document.body.classList.remove("intro-on");
+      document.documentElement.classList.remove("intro-on");
       var bubbles = document.querySelector(".bubbles");
       if (bubbles) bubbles.classList.add("play");
+      introRunning = false;
     }, 3900);
   }
 
@@ -655,6 +693,21 @@
     var nxt = PAGE_ORDER.indexOf(href.replace(/^#\/?/, "").split("/")[0] || "");
     navigate(href, (cur >= 0 && nxt >= 0 && nxt < cur) ? -1 : 1);
   });
+
+  /* 片头期间整页锁定，任意点击即跳过 */
+  function introGuard(e) {
+    if (!document.body.classList.contains("intro-on")) return;
+    if (e.cancelable) e.preventDefault();
+    e.stopPropagation();
+    skipIntro();
+  }
+  document.addEventListener("touchstart", introGuard, { capture: true, passive: false });
+  document.addEventListener("mousedown", introGuard, true);
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" || e.key === "Enter" || e.key === " ") {
+      if (document.body.classList.contains("intro-on")) skipIntro();
+    }
+  }, true);
 
   window.addEventListener("resize", function () { movePill(false); });
   initSwipe();

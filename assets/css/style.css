@@ -465,6 +465,34 @@ body.intro-on .nav {
 body.intro-on .bubbles,
 body.intro-on footer { visibility: hidden; }
 
+/* 片头期间锁死整页：不能滚动、不能双指缩放、不能滑动切页 */
+html.intro-on,
+body.intro-on {
+  overflow: hidden;
+  height: 100%;
+  touch-action: none;
+  overscroll-behavior: none;
+}
+
+/* 跳过提示 */
+body.intro-on::after {
+  content: "轻触跳过";
+  position: fixed;
+  left: 50%;
+  bottom: 34px;
+  transform: translateX(-50%);
+  z-index: 46;
+  font-size: 11.5px;
+  letter-spacing: .28em;
+  color: rgba(255, 255, 255, .3);
+  pointer-events: none;
+  animation: hint-in .9s ease 1s both;
+}
+@keyframes hint-in {
+  from { opacity: 0; transform: translate(-50%, 6px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
 .bubbles.play .bubble {
   animation: bubble-pop .92s cubic-bezier(.34, 1.45, .5, 1) backwards, float 7s ease-in-out infinite;
 }
