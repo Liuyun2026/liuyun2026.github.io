@@ -148,53 +148,59 @@
   /* ---------- 视图 ---------- */
 
   function viewHome() {
-    var featured = S.projects.filter(function (p) { return p.featured; }).slice(0, 4);
     var recent = S.notes.filter(function (n) { return !n.draft; }).slice(0, 3);
+
+    var bubbles = [
+      { href: "#/projects", t: "项目", e: "Projects",
+        ico: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 20.5 7v10L12 21.2 3.5 17V7z"/><path d="M3.5 7 12 11.4 20.5 7M12 11.4V21.2"/></svg>' },
+      { href: "#/notes", t: "笔记", e: "Notes",
+        ico: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h9L19 7.5v13H6z"/><path d="M14.5 3.5V8H19"/><path d="M9 12h7M9 15.5h7M9 8.5h2.5"/></svg>' },
+      { href: "#/files", t: "资料", e: "Files",
+        ico: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg>' }
+    ];
 
     return {
       title: S.meta.name + " · " + S.meta.tagline.split("·")[0].trim(),
-      html: '<div class="wrap">' +
-        '<section class="hero">' +
-          "<div>" +
-            '<div class="eyebrow">HARDWARE ENGINEER</div>' +
-            "<h1>" + esc(S.meta.name) + '<span class="en">' + esc(S.meta.handle) + "</span></h1>" +
-            '<div class="role">' + esc(S.meta.tagline.split("·")[0].trim()) +
-              " · <em>" + esc(S.meta.tagline.split("·").slice(1).join("·").trim()) + "</em></div>" +
-            '<p class="intro">' + esc(S.meta.intro) + "</p>" +
-            '<div class="hero-actions">' +
-              '<a class="btn btn--solid" href="#/projects">看项目</a>' +
-              '<a class="btn" href="#/notes">技术笔记</a>' +
-              '<a class="btn" href="#/files">资料</a>' +
-            "</div>" +
-          "</div>" +
-          specCard() +
-        "</section>" +
-
-        '<section class="block">' +
-          secHead("SELECTED", "在做的东西") +
-          '<div class="cards cards--2">' +
-            featured.map(function (p) {
-              return projectCard(p, S.projects.indexOf(p));
+      html:
+        '<div class="home">' +
+          '<section class="hero-jelly">' +
+            '<div class="jelly">' +
+              '<span class="jelly-tag">Maker Space</span>' +
+              '<h1>Hello<span class="accent">.</span></h1>' +
+              '<p class="lead">欢迎来到<span class="hl">流雲</span>的创客空间</p>' +
+              '<p class="desc">' + esc(S.meta.intro) + '</p>' +
+              '<div class="jelly-meta">' +
+                '<span class="pill"><i class="dot"></i>' + esc(S.meta.status) + '</span>' +
+                '<a class="pill pill--link" href="' + esc(S.meta.github) + '" target="_blank" rel="noopener">GitHub ↗</a>' +
+              '</div>' +
+            '</div>' +
+          '</section>' +
+          '<nav class="bubbles">' +
+            bubbles.map(function (b) {
+              return '<a class="bubble" href="' + b.href + '">' +
+                '<span class="bubble-ico">' + b.ico + '</span>' +
+                '<span class="bubble-t">' + b.t + '</span>' +
+                '<span class="bubble-e">' + b.e + '</span></a>';
             }).join("") +
-          "</div>" +
-        "</section>" +
+          '</nav>' +
+        '</div>' +
 
-        '<section class="block">' +
-          secHead("STACK", "能干的活") +
-          '<div class="skillgrid">' +
-            S.skills.map(function (g) {
-              return '<div class="skillcell"><h4>' + esc(g.group) + "</h4><ul>" +
-                g.items.map(function (it) { return "<li>" + esc(it) + "</li>"; }).join("") +
-                "</ul></div>";
-            }).join("") +
-          "</div>" +
-        "</section>" +
-
-        '<section class="block">' +
-          secHead("NOTES", "最近笔记", recent.length + " 篇") +
-          '<div class="nlist">' + recent.map(noteRow).join("") + "</div>" +
-        "</section>" +
-      "</div>"
+        '<div class="wrap home-more">' +
+          '<section class="block">' +
+            secHead("NOTES", "最近笔记", recent.length + " 篇") +
+            '<div class="nlist">' + recent.map(noteRow).join("") + '</div>' +
+          '</section>' +
+          '<section class="block">' +
+            secHead("STACK", "能干的活") +
+            '<div class="skillgrid">' +
+              S.skills.map(function (g) {
+                return '<div class="skillcell"><h4>' + esc(g.group) + '</h4><ul>' +
+                  g.items.map(function (it) { return "<li>" + esc(it) + "</li>"; }).join("") +
+                  '</ul></div>';
+              }).join("") +
+            '</div>' +
+          '</section>' +
+        '</div>'
     };
   }
 
