@@ -505,7 +505,8 @@
     card.classList.add("is-intro");
     card.style.transformOrigin = "50% 50%";
     card.style.transform = "translate3d(" + dx + "px," + dy + "px,0) scale(" + s + ")";
-    card.style.borderRadius = "0px";
+    /* 开场也给足圆角：始终保持气泡形态，不要中途变成方块卡片 */
+    card.style.borderRadius = "26px";
     layer.classList.add("on");
 
     /* 串行节奏，总时长约 5 秒：
@@ -515,12 +516,14 @@
     window.setTimeout(function () { welcome.classList.add("in"); }, 1700);
 
     window.setTimeout(function () {
-      card.style.transition = "transform 1.25s cubic-bezier(.22,1.05,.3,1), border-radius 1.1s ease";
+      card.style.transition = "transform 1.3s cubic-bezier(.34,1.12,.44,1), border-radius 1.15s ease";
       card.style.transform = "translate3d(0,0,0) scale(1)";
       card.style.borderRadius = "";
     }, 2500);
 
-    window.setTimeout(function () { layer.classList.remove("on"); }, 3700);
+    /* 收缩进行到四成时让文字淡出，再缩下去就糊成一团小字了 */
+    window.setTimeout(function () { welcome.classList.remove("in"); }, 2900);
+    window.setTimeout(function () { layer.classList.remove("on"); }, 3400);
     window.setTimeout(function () { card.classList.remove("is-intro"); }, 3800);
 
     window.setTimeout(function () {

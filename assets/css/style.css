@@ -21,7 +21,7 @@
 
   --r-sm: 12px;
   --r:    22px;
-  --r-lg: 36px;
+  --r-lg: 44px;
 
   --sh:     0 24px 60px -22px rgba(0, 0, 0, .72);
   --sh-hi:  0 32px 80px -24px rgba(0, 0, 0, .8);
@@ -370,23 +370,23 @@ body.intro-on .nav {
   background: linear-gradient(168deg, rgba(30, 39, 55, .82), rgba(10, 14, 20, .94));
   box-shadow: 0 0 0 rgba(0, 0, 0, 0);
 }
+/* 光泽保留，只把模糊滤镜去掉：放大状态下 blur 半径同样被放大，代价太高 */
 .jelly.is-intro::before,
-.jelly.is-intro::after { display: none; }
+.jelly.is-intro::after { filter: none; }
 
 /* 开场文字层：绝对定位在卡片内部，随卡片一起缩放，不会飘在屏幕中央 */
 .intro-layer {
   position: absolute;
   inset: 0;
   z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: calc(20px / var(--cs, 4));
+  display: grid;
+  place-items: center;
   pointer-events: none;
   opacity: 0;
   transition: opacity .45s ease;
 }
+/* 两句叠在同一位置，"你好"淡出时欢迎语已在原位，不会错位 */
+.intro-layer > * { grid-area: 1 / 1; }
 .intro-layer.on { opacity: 1; }
 .intro-layer > * {
   opacity: 0;
@@ -419,9 +419,10 @@ body.intro-on .nav {
 }
 
 .intro-welcome {
-  font-size: calc(25px / var(--cs, 4));
-  font-weight: 600;
-  letter-spacing: .01em;
+  font-size: calc(24px / var(--cs, 4));
+  font-weight: 800;
+  letter-spacing: .02em;
+  line-height: 1.5;
   color: #FFFFFF;
   text-align: center;
   text-shadow: 0 0 calc(22px / var(--cs, 4)) rgba(150, 195, 255, .45);
