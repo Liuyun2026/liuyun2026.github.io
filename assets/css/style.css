@@ -61,7 +61,7 @@ body {
   z-index: 0;
   pointer-events: none;
   background: #070910 url("../img/wallpaper.jpg") center / cover no-repeat;
-  filter: brightness(1.32) saturate(1.05) blur(1px);
+  filter: brightness(1.32) saturate(1.05);
   transform: translateZ(0);
 }
 .bg::after {
@@ -339,6 +339,16 @@ body.intro-on .nav {
   transform: translateY(14px);
   transition: none;
 }
+/* 铺满时不用 backdrop-filter：放大后的元素每帧都要重算整屏模糊，直接卡死。
+   改用不透明的深色渐变顶替，收缩到位前再切回真玻璃，肉眼几乎看不出接缝 */
+.jelly.is-intro {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: linear-gradient(168deg, rgba(30, 39, 55, .82), rgba(10, 14, 20, .94));
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+}
+.jelly.is-intro::before,
+.jelly.is-intro::after { display: none; }
 
 /* 全屏居中的大字：你好 */
 .intro-hello {
@@ -354,7 +364,7 @@ body.intro-on .nav {
   font-weight: 800;
   letter-spacing: .03em;
   color: #FFFFFF;
-  text-shadow: 0 0 90px rgba(150, 195, 255, .6);
+  text-shadow: 0 0 48px rgba(150, 195, 255, .55);
   transition: transform .85s cubic-bezier(.45, 0, .75, .2), opacity .6s ease;
   will-change: transform, opacity;
 }

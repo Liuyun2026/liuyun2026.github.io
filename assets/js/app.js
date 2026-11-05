@@ -437,14 +437,16 @@
     if (!r.width || !r.height) return;
 
     var vw = window.innerWidth, vh = window.innerHeight;
-    var scale = Math.max(vw / r.width, vh / r.height) * 1.04;
+    /* 非等比：横向比纵向拉得更开，收缩过程里两个方向以不同速度归位，形成形变 */
+    var sx = (vw / r.width) * 1.16;
+    var sy = (vh / r.height) * 1.02;
     var dx = vw / 2 - (r.left + r.width / 2);
     var dy = vh / 2 - (r.top + r.height / 2);
 
     document.body.classList.add("intro-on");
     card.classList.add("is-intro");
     card.style.transformOrigin = "50% 50%";
-    card.style.transform = "translate3d(" + dx + "px," + dy + "px,0) scale(" + scale + ")";
+    card.style.transform = "translate3d(" + dx + "px," + dy + "px,0) scale(" + sx + "," + sy + ")";
     card.style.borderRadius = "0px";
 
     var hello = document.createElement("div");
@@ -456,13 +458,14 @@
     window.setTimeout(function () { hello.classList.add("show"); }, 30);
 
     window.setTimeout(function () {
-      card.style.transition = "transform .9s cubic-bezier(.2,1.14,.32,1), border-radius .8s ease";
-      card.style.transform = "translate3d(0,0,0) scale(1)";
+      /* 先停住让「你好」被看清，再开始收缩 */
+      card.style.transition = "transform 1.15s cubic-bezier(.22,1.06,.3,1), border-radius 1s ease";
+      card.style.transform = "translate3d(0,0,0) scale(1,1)";
       card.style.borderRadius = "";
       hello.classList.add("shrink");
-      window.setTimeout(function () { card.classList.remove("is-intro"); }, 340);
-      window.setTimeout(function () { if (hello.parentNode) hello.remove(); }, 900);
-    }, 900);
+      window.setTimeout(function () { card.classList.remove("is-intro"); }, 420);
+      window.setTimeout(function () { if (hello.parentNode) hello.remove(); }, 1000);
+    }, 1100);
 
     window.setTimeout(function () {
       card.style.transition = "none";
@@ -471,7 +474,7 @@
       document.body.classList.remove("intro-on");
       var bubbles = document.querySelector(".bubbles");
       if (bubbles) bubbles.classList.add("play");
-    }, 1800);
+    }, 2300);
   }
 
   function render() {
