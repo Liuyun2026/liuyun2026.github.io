@@ -497,6 +497,66 @@
       introPending = false;
       window.setTimeout(playIntro, 40);
     }
+
+    if (slideClass) {
+      view.classList.remove("slide-next", "slide-prev");
+      void view.offsetWidth;
+      view.classList.add(slideClass);
+      (function (cls) {
+        window.setTimeout(function () { view.classList.remove(cls); }, 420);
+      })(slideClass);
+      slideClass = "";
+    }
+  }
+
+  /* ---------- 左右滑动切换 ----------
+   * 顺序：首页 → 项目 → 笔记 → 资料
+   * 左滑进入下一项（新页从右侧进），右滑返回上一项
+   * 详情页（#/note/xxx、#/project/xxx）不参与滑动，避免和返回逻辑冲突
+   */
+  var PAGE_ORDER = ["", "projects", "notes", "files"];
+  var slideClass = "";
+
+  function pageIndex() {
+    var seg = location.hash.replace(/^#\/?/, "").split("/")[0] || "";
+    return PAGE_ORDER.indexOf(seg);
+  }
+
+  function slideTo(dir) {
+    var i = pageIndex();
+    if (i < 0) return;
+    var n = i + dir;
+    if (n < 0 || n >= PAGE_ORDER.length) return;
+    var target = PAGE_ORDER[n] ? "#/" + PAGE_ORDER[n] : "#/";
+    if (location.hash === target || (!location.hash && !target)) return;
+    slideClass = dir > 0 ? "slide-next" : "slide-prev";
+    location.hash = target;
+  }
+
+  function initSwipe() {
+    var startX = 0, startY = 0, tracking = false;
+
+    document.addEventListener("touchstart", function (e) {
+      if (e.touches.length !== 1) { tracking = false; return; }
+      if (document.body.classList.contains("intro-on")) { tracking = false; return; }
+      /* 排除可横向滚动的内容与输入框，否则会抢走手势 */
+      var t = e.target;
+      if (t && t.closest && t.closest("pre, input, textarea, .hint")) { tracking = false; return; }
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      tracking = true;
+    }, { passive: true });
+
+    document.addEventListener("touchend", function (e) {
+      if (!tracking) return;
+      tracking = false;
+      var t = e.changedTouches[0];
+      var dx = t.clientX - startX;
+      var dy = t.clientY - startY;
+      if (Math.abs(dx) < 70) return;
+      if (Math.abs(dx) < Math.abs(dy) * 1.4) return;
+      slideTo(dx < 0 ? 1 : -1);
+    }, { passive: true });
   }
 
   /* ---------- 静态部分 ---------- */
@@ -515,6 +575,7 @@
   }
 
   window.addEventListener("hashchange", render);
+  initSwipe();
   initStatic();
   render();
 })();
