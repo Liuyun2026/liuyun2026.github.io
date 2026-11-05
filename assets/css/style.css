@@ -112,6 +112,14 @@ h1, h2, h3, h4 { margin: 0; font-weight: 640; line-height: 1.32; letter-spacing:
   z-index: 50;
   padding: 14px 0 0;
   pointer-events: none;
+  transition: opacity .45s ease, transform .45s ease;
+}
+body.intro-on .nav {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-12px);
+  pointer-events: none;
+  transition: opacity .45s ease, transform .45s ease, visibility 0s linear .45s;
 }
 .nav-inner {
   pointer-events: auto;
@@ -217,7 +225,7 @@ h1, h2, h3, h4 { margin: 0; font-weight: 640; line-height: 1.32; letter-spacing:
 .hero-jelly {
   display: grid;
   place-items: center;
-  padding: 10px 0;
+  padding: 10px 26px;
 }
 
 .jelly {
@@ -236,7 +244,6 @@ h1, h2, h3, h4 { margin: 0; font-weight: 640; line-height: 1.32; letter-spacing:
     0 2px 0 rgba(255, 255, 255, .04),
     inset 0 1px 0 rgba(255, 255, 255, .38),
     inset 0 -40px 80px -60px rgba(127, 178, 255, .55);
-  animation: jelly-in .95s var(--ease) both;
 }
 /* 顶部弧形高光 */
 .jelly::before {
@@ -288,27 +295,17 @@ h1, h2, h3, h4 { margin: 0; font-weight: 640; line-height: 1.32; letter-spacing:
 /* 标题用实色而非渐变文字：background-clip:text 在部分移动端浏览器
    只识别 -webkit-text-fill-color，会导致文字透明、背景画成色块 */
 .jelly h1 {
-  font-size: clamp(46px, 7.2vw, 76px);
-  font-weight: 800;
-  letter-spacing: -.045em;
-  line-height: 1.02;
-  margin-bottom: 14px;
-  color: #FFFFFF;
-  text-shadow: 0 0 46px rgba(150, 190, 255, .34), 0 1px 0 rgba(255, 255, 255, .12);
-}
-.jelly h1 .accent { color: var(--accent-2); }
-
-.jelly .lead {
-  font-size: clamp(19px, 2.3vw, 25px);
-  font-weight: 600;
-  letter-spacing: -.01em;
-  color: #fff;
-  margin: 0 0 26px;
-}
-.jelly .lead .hl {
-  color: #A9CBFF;
+  font-size: clamp(23px, 3.9vw, 35px);
   font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1.45;
+  margin-bottom: 20px;
+  color: #FFFFFF;
+  text-shadow: 0 0 36px rgba(150, 190, 255, .3);
 }
+.jelly h1 .hl { color: #A9CBFF; }
+
+
 .jelly .desc {
   font-size: 14px;
   line-height: 1.8;
@@ -332,6 +329,48 @@ h1, h2, h3, h4 { margin: 0; font-weight: 640; line-height: 1.32; letter-spacing:
 }
 .pill:hover { color: #fff; background: rgba(255, 255, 255, .1); border-color: var(--edge-hi); transform: translateY(-2px); }
 .pill--link { color: var(--fg-2); }
+
+
+/* ---- 开场动画 ---- */
+/* 卡片铺满时，内容先隐藏，避免被放大变形 */
+.jelly > * { transition: opacity .55s ease, transform .7s var(--ease); }
+.jelly.is-intro > * {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: none;
+}
+
+/* 全屏居中的大字：你好 */
+.intro-hello {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .06em;
+  pointer-events: none;
+  font-size: clamp(84px, 15vw, 176px);
+  font-weight: 800;
+  letter-spacing: .03em;
+  color: #FFFFFF;
+  text-shadow: 0 0 90px rgba(150, 195, 255, .6);
+  transition: transform .85s cubic-bezier(.45, 0, .75, .2), opacity .6s ease;
+  will-change: transform, opacity;
+}
+.intro-hello span {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(30px) scale(.94);
+  transition: opacity .55s ease, transform .8s cubic-bezier(.2, 1.3, .36, 1);
+}
+.intro-hello.show span { opacity: 1; transform: none; }
+.intro-hello.show span:nth-child(2) { transition-delay: .13s; }
+/* 缩小上移，交给卡片里的「你好」标签接棒 */
+.intro-hello.shrink {
+  transform: translateY(-15vh) scale(.15);
+  opacity: 0;
+}
 
 /* 下 1/3：气泡目录 */
 .bubbles {
@@ -362,11 +401,28 @@ h1, h2, h3, h4 { margin: 0; font-weight: 640; line-height: 1.32; letter-spacing:
     inset 0 2px 8px rgba(255, 255, 255, .3),
     inset 0 -14px 26px -18px rgba(127, 178, 255, .6);
   transition: transform .5s var(--ease), box-shadow .5s var(--ease), border-color .3s;
-  animation: bubble-in .9s var(--ease) both, float 7s ease-in-out infinite;
+  animation: none;
 }
-.bubble:nth-child(1) { animation-delay: .12s, .9s; }
-.bubble:nth-child(2) { animation-delay: .22s, 1.6s; }
-.bubble:nth-child(3) { animation-delay: .32s, 2.3s; }
+/* 卡片落定后由 JS 加上 .play，气泡自下而上依次弹起 */
+body.intro-on .bubble {
+  opacity: 0;
+  transform: translateY(150px) scale(.8);
+}
+
+.bubbles.play .bubble {
+  animation: bubble-pop .92s cubic-bezier(.34, 1.45, .5, 1) backwards, float 7s ease-in-out infinite;
+}
+.bubbles.play .bubble:nth-child(1) { animation-delay: .08s, 1.2s; }
+.bubbles.play .bubble:nth-child(2) { animation-delay: .19s, 1.3s; }
+.bubbles.play .bubble:nth-child(3) { animation-delay: .30s, 1.4s; }
+
+@keyframes bubble-pop {
+  0%   { opacity: 0; transform: translateY(150px) scale(.8); }
+  55%  { opacity: 1; transform: translateY(-11px) scale(1.06); }
+  72%  { transform: translateY(5px) scale(.98); }
+  86%  { transform: translateY(-2px) scale(1.005); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
 
 /* 内部弧形高光 + 底部反光，做出玻璃珠的厚度 */
 .bubble { overflow: hidden; }
@@ -927,10 +983,9 @@ main .block:nth-of-type(3) { animation-delay: .14s; }
   .nav-right { margin-left: auto; }
 
   .home { min-height: min(calc(100svh - 62px), 820px); grid-template-rows: 2fr 1fr; padding: 12px 0 24px; }
-  .hero-jelly { place-items: center; padding: 0; }
+  .hero-jelly { place-items: center; padding: 0 16px; }
   .jelly { padding: 32px 22px 28px; border-radius: 26px; }
-  .jelly h1 { font-size: 44px; }
-  .jelly .lead { font-size: 18px; }
+  .jelly h1 { font-size: 22px; letter-spacing: -.01em; }
   .jelly .desc { font-size: 13px; margin-bottom: 22px; }
   .jelly-tag { margin-bottom: 20px; }
   .pill { font-size: 11.5px; padding: 7px 13px; }

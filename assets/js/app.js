@@ -15,6 +15,7 @@
 
   var view = document.getElementById("view");
   var S = SITE;
+  var introPending = true;   /* 首页开场动画是否还需要播放 */
 
   /* ---------- 工具 ---------- */
 
@@ -165,9 +166,8 @@
         '<div class="home">' +
           '<section class="hero-jelly">' +
             '<div class="jelly">' +
-              '<span class="jelly-tag">Maker Space</span>' +
-              '<h1>Hello<span class="accent">.</span></h1>' +
-              '<p class="lead">欢迎来到<span class="hl">流雲</span>的创客空间</p>' +
+              '<span class="jelly-tag">你好</span>' +
+              '<h1>欢迎来到<span class="hl">流雲</span>的创客空间</h1>' +
               '<div class="jelly-meta">' +
                 '<span class="pill"><i class="dot"></i>' + esc(S.meta.status) + '</span>' +
                 '<a class="pill pill--link" href="' + esc(S.meta.github) + '" target="_blank" rel="noopener">GitHub ↗</a>' +
@@ -419,6 +419,61 @@
     return viewNotFound();
   }
 
+  /* ---------- 首页开场动画 ----------
+   * 时间轴：
+   *   0.00s  卡片铺满全屏，「你好」逐字浮现
+   *   0.90s  卡片弹性收缩回原位，「你好」缩小上移淡出
+   *   1.25s  卡片内容淡入
+   *   1.80s  三个气泡自下而上依次弹起
+   * 收缩用 FLIP：先量出卡片最终位置，反向施加 transform 使其与全屏重合，
+   * 再去掉 transform，浏览器自行补间，布局不会错位。
+   */
+  function playIntro() {
+    var card = document.querySelector(".jelly");
+    if (!card) return;
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    var r = card.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+
+    var vw = window.innerWidth, vh = window.innerHeight;
+    var scale = Math.max(vw / r.width, vh / r.height) * 1.04;
+    var dx = vw / 2 - (r.left + r.width / 2);
+    var dy = vh / 2 - (r.top + r.height / 2);
+
+    document.body.classList.add("intro-on");
+    card.classList.add("is-intro");
+    card.style.transformOrigin = "50% 50%";
+    card.style.transform = "translate3d(" + dx + "px," + dy + "px,0) scale(" + scale + ")";
+    card.style.borderRadius = "0px";
+
+    var hello = document.createElement("div");
+    hello.className = "intro-hello";
+    hello.innerHTML = "<span>你</span><span>好</span>";
+    document.body.appendChild(hello);
+
+    /* 用 setTimeout 而非 rAF：部分无头/后台环境不触发 rAF，且延迟 30ms 足够触发一次重排 */
+    window.setTimeout(function () { hello.classList.add("show"); }, 30);
+
+    window.setTimeout(function () {
+      card.style.transition = "transform .9s cubic-bezier(.2,1.14,.32,1), border-radius .8s ease";
+      card.style.transform = "translate3d(0,0,0) scale(1)";
+      card.style.borderRadius = "";
+      hello.classList.add("shrink");
+      window.setTimeout(function () { card.classList.remove("is-intro"); }, 340);
+      window.setTimeout(function () { if (hello.parentNode) hello.remove(); }, 900);
+    }, 900);
+
+    window.setTimeout(function () {
+      card.style.transition = "none";
+      card.style.transform = "";
+      window.setTimeout(function () { card.style.transition = ""; }, 60);
+      document.body.classList.remove("intro-on");
+      var bubbles = document.querySelector(".bubbles");
+      if (bubbles) bubbles.classList.add("play");
+    }, 1800);
+  }
+
   function render() {
     var r = route();
     view.innerHTML = r.html;
@@ -434,6 +489,11 @@
     });
 
     window.scrollTo(0, 0);
+
+    if (introPending && !location.hash.replace(/^#\/?/, "").split("/")[0]) {
+      introPending = false;
+      window.setTimeout(playIntro, 40);
+    }
   }
 
   /* ---------- 静态部分 ---------- */
