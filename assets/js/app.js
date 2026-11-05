@@ -616,8 +616,8 @@
       var t = e.changedTouches[0];
       var dx = t.clientX - startX;
       var dy = t.clientY - startY;
-      if (Math.abs(dx) < 70) return;
-      if (Math.abs(dx) < Math.abs(dy) * 1.4) return;
+      if (Math.abs(dx) < 55) return;
+      if (Math.abs(dx) < Math.abs(dy) * 1.15) return;
       slideTo(dx < 0 ? 1 : -1);
     }, { passive: true });
   }
