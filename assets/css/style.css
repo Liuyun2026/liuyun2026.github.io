@@ -207,7 +207,7 @@ h1, h2, h3, h4 { margin: 0; font-weight: 640; line-height: 1.32; letter-spacing:
 
 .home {
   /* 首屏高度：跟随视口，但设上限，避免超高屏幕把气泡推到很远 */
-  min-height: min(calc(100svh - 70px), 880px);
+  min-height: min(calc(100svh - 70px), 840px);
   display: grid;
   grid-template-rows: 2fr 1fr;
   padding: 20px 0 46px;
@@ -285,36 +285,29 @@ h1, h2, h3, h4 { margin: 0; font-weight: 640; line-height: 1.32; letter-spacing:
   box-shadow: 0 0 10px var(--accent-2);
 }
 
+/* 标题用实色而非渐变文字：background-clip:text 在部分移动端浏览器
+   只识别 -webkit-text-fill-color，会导致文字透明、背景画成色块 */
 .jelly h1 {
   font-size: clamp(46px, 7.2vw, 76px);
   font-weight: 800;
   letter-spacing: -.045em;
   line-height: 1.02;
-  margin-bottom: 16px;
-  background: linear-gradient(180deg, #FFFFFF 25%, rgba(255, 255, 255, .72));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  margin-bottom: 14px;
+  color: #FFFFFF;
+  text-shadow: 0 0 46px rgba(150, 190, 255, .34), 0 1px 0 rgba(255, 255, 255, .12);
 }
-.jelly h1 .accent {
-  background: linear-gradient(120deg, #A9CBFF, #4FE3C1);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
+.jelly h1 .accent { color: var(--accent-2); }
 
 .jelly .lead {
   font-size: clamp(19px, 2.3vw, 25px);
   font-weight: 600;
   letter-spacing: -.01em;
   color: #fff;
-  margin: 0 0 12px;
+  margin: 0 0 26px;
 }
 .jelly .lead .hl {
-  background: linear-gradient(120deg, #A9CBFF 10%, #4FE3C1 90%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #A9CBFF;
+  font-weight: 700;
 }
 .jelly .desc {
   font-size: 14px;
@@ -882,8 +875,8 @@ main .block:nth-of-type(3) { animation-delay: .14s; }
   .nav-links a { padding: 6px 11px; font-size: 13px; }
   .nav-right { margin-left: auto; }
 
-  .home { min-height: min(calc(100svh - 62px), 720px); grid-template-rows: auto 1fr; padding: 12px 0 24px; }
-  .hero-jelly { place-items: start center; padding: 18px 0 0; }
+  .home { min-height: min(calc(100svh - 62px), 820px); grid-template-rows: 2fr 1fr; padding: 12px 0 24px; }
+  .hero-jelly { place-items: center; padding: 0; }
   .jelly { padding: 32px 22px 28px; border-radius: 26px; }
   .jelly h1 { font-size: 44px; }
   .jelly .lead { font-size: 18px; }

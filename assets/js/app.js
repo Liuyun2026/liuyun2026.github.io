@@ -168,7 +168,6 @@
               '<span class="jelly-tag">Maker Space</span>' +
               '<h1>Hello<span class="accent">.</span></h1>' +
               '<p class="lead">欢迎来到<span class="hl">流雲</span>的创客空间</p>' +
-              '<p class="desc">' + esc(S.meta.intro) + '</p>' +
               '<div class="jelly-meta">' +
                 '<span class="pill"><i class="dot"></i>' + esc(S.meta.status) + '</span>' +
                 '<a class="pill pill--link" href="' + esc(S.meta.github) + '" target="_blank" rel="noopener">GitHub ↗</a>' +
@@ -189,16 +188,6 @@
           '<section class="block">' +
             secHead("NOTES", "最近笔记", recent.length + " 篇") +
             '<div class="nlist">' + recent.map(noteRow).join("") + '</div>' +
-          '</section>' +
-          '<section class="block">' +
-            secHead("STACK", "能干的活") +
-            '<div class="skillgrid">' +
-              S.skills.map(function (g) {
-                return '<div class="skillcell"><h4>' + esc(g.group) + '</h4><ul>' +
-                  g.items.map(function (it) { return "<li>" + esc(it) + "</li>"; }).join("") +
-                  '</ul></div>';
-              }).join("") +
-            '</div>' +
           '</section>' +
         '</div>'
     };
