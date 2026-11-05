@@ -170,10 +170,6 @@
         '<div class="home">' +
           '<section class="hero-jelly">' +
             '<div class="jelly">' +
-              '<div class="intro-layer">' +
-                '<div class="intro-hello"><span>你</span><span>好</span></div>' +
-                '<div class="intro-welcome">欢迎来到<span class="hl">流雲</span>的创客空间</div>' +
-              '</div>' +
               '<span class="jelly-tag">你好</span>' +
               '<h1>欢迎来到<span class="hl">流雲</span>的创客空间</h1>' +
               '<div class="jelly-meta">' +
@@ -190,6 +186,12 @@
                 '<span class="bubble-e">' + b.e + '</span></a>';
             }).join("") +
           '</nav>' +
+        '</div>' +
+
+        /* 开场文字层：独立于卡片，只跟随位移不参与缩放，字号恒定 */
+        '<div class="intro-layer">' +
+          '<div class="intro-hello"><span>你</span><span>好</span></div>' +
+          '<div class="intro-welcome">欢迎来到<span class="hl">流雲</span>的创客空间</div>' +
         '</div>' +
 
         '<div class="wrap home-more">' +
@@ -527,7 +529,11 @@
       card.classList.remove("is-intro");
       window.setTimeout(function () { card.style.transition = ""; }, 340);
     }
-    if (layer) layer.classList.remove("on");
+    if (layer) {
+      layer.classList.remove("on");
+      layer.style.transition = "none";
+      layer.style.transform = "";
+    }
 
     document.body.classList.remove("intro-on");
     document.documentElement.classList.remove("intro-on");
@@ -536,57 +542,64 @@
 
   function playIntro() {
     var card = document.querySelector(".jelly");
-    if (!card) return;
+    var layer = document.querySelector(".intro-layer");
+    if (!card || !layer) return;
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-    var layer = card.querySelector(".intro-layer");
-    var hello = card.querySelector(".intro-hello");
-    var welcome = card.querySelector(".intro-welcome");
-    if (!layer || !hello || !welcome) return;
+    var hello = layer.querySelector(".intro-hello");
+    var welcome = layer.querySelector(".intro-welcome");
+    if (!hello || !welcome) return;
 
     var r = card.getBoundingClientRect();
     if (!r.width || !r.height) return;
 
     var vw = window.innerWidth, vh = window.innerHeight;
-    /* 等比放大：卡片内的文字若跟着非等比缩放会被拉长，形变交给圆角与缓动曲线表达 */
     var s = Math.max(vw / r.width, vh / r.height) * 1.02;
     var dx = vw / 2 - (r.left + r.width / 2);
     var dy = vh / 2 - (r.top + r.height / 2);
-
-    /* 字号按放大倍数反算，开场视觉尺寸恒定；收缩时自然一起变小 */
-    card.style.setProperty("--cs", s.toFixed(3));
+    var move = "translate3d(" + dx + "px," + dy + "px,0)";
 
     introRunning = true;
     document.body.classList.add("intro-on");
     document.documentElement.classList.add("intro-on");
     card.classList.add("is-intro");
+
+    /* 气泡：位移 + 等比放大。圆角不做任何覆盖，保持 44px，
+       这样任意缩放倍数下圆角占宽度的比例恒定，全程都是气泡形态 */
     card.style.transformOrigin = "50% 50%";
-    card.style.transform = "translate3d(" + dx + "px," + dy + "px,0) scale(" + s + ")";
-    /* 开场也给足圆角：始终保持气泡形态，不要中途变成方块卡片 */
-    card.style.borderRadius = "26px";
+    card.style.transform = move + " scale(" + s + ")";
+
+    /* 文字层本身就居中于视口，而气泡放大后中心也在视口中心，
+       所以开场不需要位移；收缩时再反向跟随气泡回到原位 */
+    layer.style.transform = "translate3d(0,0,0)";
     layer.classList.add("on");
 
-    /* 串行节奏，总时长约 5 秒：
-       你好浮现 → 你好淡出 → 欢迎语浮现 → 停一下 → 收缩 → 开场层淡出 → 内容就位 → 气泡弹起 */
+    /* 串行节奏，总时长约 5 秒 */
     introLater(function () { hello.classList.add("show"); }, 120);
     introLater(function () { hello.classList.add("out"); }, 1250);
     introLater(function () { welcome.classList.add("in"); }, 1700);
 
+    /* 收缩：气泡与文字层用完全相同的时长和缓动一起归位，两者始终同中心 */
     introLater(function () {
-      card.style.transition = "transform 1.3s cubic-bezier(.34,1.12,.44,1), border-radius 1.15s ease";
+      var ease = "cubic-bezier(.32,.9,.3,1)";
+      card.style.transition = "transform 1.35s " + ease;
       card.style.transform = "translate3d(0,0,0) scale(1)";
-      card.style.borderRadius = "";
+      layer.style.transition = "transform 1.35s " + ease + ", opacity .55s ease";
+      layer.style.transform = "translate3d(" + (-dx) + "px," + (-dy) + "px,0)";
+      layer.classList.remove("on");
     }, 2500);
 
-    /* 收缩进行到四成时让文字淡出，再缩下去就糊成一团小字了 */
-    introLater(function () { welcome.classList.remove("in"); }, 2900);
-    introLater(function () { layer.classList.remove("on"); }, 3400);
-    introLater(function () { card.classList.remove("is-intro"); }, 3800);
+    introLater(function () { card.classList.remove("is-intro"); }, 3750);
 
     introLater(function () {
       card.style.transition = "none";
       card.style.transform = "";
-      window.setTimeout(function () { card.style.transition = ""; }, 60);
+      layer.style.transition = "none";
+      layer.style.transform = "";
+      window.setTimeout(function () {
+        card.style.transition = "";
+        layer.style.transition = "";
+      }, 60);
       document.body.classList.remove("intro-on");
       document.documentElement.classList.remove("intro-on");
       var bubbles = document.querySelector(".bubbles");
