@@ -502,7 +502,8 @@
   /* ---------- 静态部分 ---------- */
 
   function initStatic() {
-    document.getElementById("year").textContent = S.meta.year;
+    var yearEl = document.getElementById("year");
+    if (yearEl) yearEl.textContent = S.meta.year;
     document.getElementById("navStatus").textContent = S.meta.status;
     document.getElementById("navGithub").href = S.meta.github;
 
