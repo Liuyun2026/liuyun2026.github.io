@@ -164,19 +164,42 @@ body.intro-on .nav {
 }
 .brand-txt { font-size: 14.5px; }
 
-.nav-links { display: flex; gap: 2px; }
+.nav-links { display: flex; gap: 2px; position: relative; }
 .nav-links a {
+  position: relative;
+  z-index: 1;
   font-size: 13.5px;
   color: var(--fg-2);
   padding: 7px 14px;
   border-radius: 999px;
-  transition: color .2s, background .25s;
+  transition: color .25s;
 }
-.nav-links a:hover { color: var(--fg); background: rgba(255, 255, 255, .07); }
-.nav-links a.on {
-  color: #0A1018;
-  background: rgba(255, 255, 255, .88);
-  font-weight: 600;
+.nav-links a:hover { color: var(--fg); }
+.nav-links a.on { color: #FFFFFF; font-weight: 600; }
+
+/* 选中态：半透明气泡，跟随当前项滑动 */
+.nav-pill {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 30px;
+  margin-top: -15px;
+  width: 0;
+  border-radius: 999px;
+  z-index: 0;
+  opacity: 0;
+  background: rgba(255, 255, 255, .16);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  backdrop-filter: blur(10px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, .22);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .4),
+    0 6px 16px -8px rgba(0, 0, 0, .7);
+  transition:
+    transform .42s cubic-bezier(.3, 1.1, .4, 1),
+    width .42s cubic-bezier(.3, 1.1, .4, 1),
+    opacity .3s ease;
+  pointer-events: none;
 }
 
 .nav-right { margin-left: auto; display: flex; align-items: center; gap: 6px; }
@@ -740,7 +763,15 @@ section.block { padding: 26px 0; }
   transition: .22s;
 }
 .chip:hover { color: var(--fg); background: rgba(255, 255, 255, .1); }
-.chip.on { color: #0A1018; background: rgba(255, 255, 255, .9); border-color: transparent; font-weight: 600; }
+.chip.on {
+  color: #FFFFFF;
+  font-weight: 600;
+  background: rgba(255, 255, 255, .16);
+  border-color: rgba(255, 255, 255, .24);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  backdrop-filter: blur(10px) saturate(160%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35);
+}
 
 .search { margin-left: auto; position: relative; display: flex; align-items: center; }
 .search input {
@@ -973,6 +1004,22 @@ footer { margin-top: 50px; padding: 28px 0 40px; }
 .foot-inner .links { margin-left: auto; display: flex; gap: 20px; }
 .foot-inner a { color: var(--fg-2); }
 .foot-inner a:hover { color: var(--accent); }
+
+/* ---- 视图过渡：页面切换的交叉淡化 ---- */
+/* 壁纸固定不参与，否则整页淡化时背景会闪一下；
+   导航跟随页面一起过渡，这样选中气泡的滑动过程能看得见 */
+.bg { view-transition-name: bg; }
+::view-transition-group(bg) { animation: none; }
+
+::view-transition-old(root) { animation: vt-out .26s ease both; }
+::view-transition-new(root) { animation: vt-in .32s var(--ease) both; }
+html[data-dir="prev"] ::view-transition-old(root) { animation-name: vt-out-rev; }
+html[data-dir="prev"] ::view-transition-new(root) { animation-name: vt-in-rev; }
+
+@keyframes vt-out     { to { opacity: 0; transform: translateX(-26px); } }
+@keyframes vt-in      { from { opacity: 0; transform: translateX(26px); } }
+@keyframes vt-out-rev { to { opacity: 0; transform: translateX(26px); } }
+@keyframes vt-in-rev  { from { opacity: 0; transform: translateX(-26px); } }
 
 /* ---- 左右滑动切页 ---- */
 @keyframes view-in-right {
