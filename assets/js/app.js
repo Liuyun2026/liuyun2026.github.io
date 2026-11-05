@@ -166,6 +166,10 @@
         '<div class="home">' +
           '<section class="hero-jelly">' +
             '<div class="jelly">' +
+              '<div class="intro-layer">' +
+                '<div class="intro-hello"><span>你</span><span>好</span></div>' +
+                '<div class="intro-welcome">欢迎来到<span class="hl">流雲</span>的创客空间</div>' +
+              '</div>' +
               '<span class="jelly-tag">你好</span>' +
               '<h1>欢迎来到<span class="hl">流雲</span>的创客空间</h1>' +
               '<div class="jelly-meta">' +
@@ -433,39 +437,44 @@
     if (!card) return;
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
+    var layer = card.querySelector(".intro-layer");
+    var hello = card.querySelector(".intro-hello");
+    var welcome = card.querySelector(".intro-welcome");
+    if (!layer || !hello || !welcome) return;
+
     var r = card.getBoundingClientRect();
     if (!r.width || !r.height) return;
 
     var vw = window.innerWidth, vh = window.innerHeight;
-    /* 非等比：横向比纵向拉得更开，收缩过程里两个方向以不同速度归位，形成形变 */
-    var sx = (vw / r.width) * 1.16;
-    var sy = (vh / r.height) * 1.02;
+    /* 等比放大：卡片内的文字若跟着非等比缩放会被拉长，形变交给圆角与缓动曲线表达 */
+    var s = Math.max(vw / r.width, vh / r.height) * 1.02;
     var dx = vw / 2 - (r.left + r.width / 2);
     var dy = vh / 2 - (r.top + r.height / 2);
+
+    /* 字号按放大倍数反算，开场视觉尺寸恒定；收缩时自然一起变小 */
+    card.style.setProperty("--cs", s.toFixed(3));
 
     document.body.classList.add("intro-on");
     card.classList.add("is-intro");
     card.style.transformOrigin = "50% 50%";
-    card.style.transform = "translate3d(" + dx + "px," + dy + "px,0) scale(" + sx + "," + sy + ")";
+    card.style.transform = "translate3d(" + dx + "px," + dy + "px,0) scale(" + s + ")";
     card.style.borderRadius = "0px";
+    layer.classList.add("on");
 
-    var hello = document.createElement("div");
-    hello.className = "intro-hello";
-    hello.innerHTML = "<span>你</span><span>好</span>";
-    document.body.appendChild(hello);
-
-    /* 用 setTimeout 而非 rAF：部分无头/后台环境不触发 rAF，且延迟 30ms 足够触发一次重排 */
-    window.setTimeout(function () { hello.classList.add("show"); }, 30);
+    /* 串行节奏，总时长约 5 秒：
+       你好浮现 → 你好淡出 → 欢迎语浮现 → 停一下 → 收缩 → 开场层淡出 → 内容就位 → 气泡弹起 */
+    window.setTimeout(function () { hello.classList.add("show"); }, 120);
+    window.setTimeout(function () { hello.classList.add("out"); }, 1250);
+    window.setTimeout(function () { welcome.classList.add("in"); }, 1700);
 
     window.setTimeout(function () {
-      /* 先停住让「你好」被看清，再开始收缩 */
-      card.style.transition = "transform 1.15s cubic-bezier(.22,1.06,.3,1), border-radius 1s ease";
-      card.style.transform = "translate3d(0,0,0) scale(1,1)";
+      card.style.transition = "transform 1.25s cubic-bezier(.22,1.05,.3,1), border-radius 1.1s ease";
+      card.style.transform = "translate3d(0,0,0) scale(1)";
       card.style.borderRadius = "";
-      hello.classList.add("shrink");
-      window.setTimeout(function () { card.classList.remove("is-intro"); }, 420);
-      window.setTimeout(function () { if (hello.parentNode) hello.remove(); }, 1000);
-    }, 1100);
+    }, 2500);
+
+    window.setTimeout(function () { layer.classList.remove("on"); }, 3700);
+    window.setTimeout(function () { card.classList.remove("is-intro"); }, 3800);
 
     window.setTimeout(function () {
       card.style.transition = "none";
@@ -474,7 +483,7 @@
       document.body.classList.remove("intro-on");
       var bubbles = document.querySelector(".bubbles");
       if (bubbles) bubbles.classList.add("play");
-    }, 2300);
+    }, 3900);
   }
 
   function render() {
