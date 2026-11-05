@@ -1034,34 +1034,6 @@ footer { margin-top: 50px; padding: 28px 0 40px; }
 .foot-inner a { color: var(--fg-2); }
 .foot-inner a:hover { color: var(--accent); }
 
-/* ---- 视图过渡：页面切换的交叉淡化 ---- */
-/* 壁纸固定不参与，否则整页淡化时背景会闪一下；
-   导航跟随页面一起过渡，这样选中气泡的滑动过程能看得见 */
-.bg { view-transition-name: bg; }
-::view-transition-group(bg) { animation: none; }
-
-::view-transition-old(root) { animation: vt-out .26s ease both; }
-::view-transition-new(root) { animation: vt-in .32s var(--ease) both; }
-html[data-dir="prev"] ::view-transition-old(root) { animation-name: vt-out-rev; }
-html[data-dir="prev"] ::view-transition-new(root) { animation-name: vt-in-rev; }
-
-@keyframes vt-out     { to { opacity: 0; transform: translateX(-26px); } }
-@keyframes vt-in      { from { opacity: 0; transform: translateX(26px); } }
-@keyframes vt-out-rev { to { opacity: 0; transform: translateX(26px); } }
-@keyframes vt-in-rev  { from { opacity: 0; transform: translateX(-26px); } }
-
-/* ---- 左右滑动切页 ---- */
-@keyframes view-in-right {
-  from { opacity: 0; transform: translateX(30px); }
-  to   { opacity: 1; transform: none; }
-}
-@keyframes view-in-left {
-  from { opacity: 0; transform: translateX(-30px); }
-  to   { opacity: 1; transform: none; }
-}
-#view.slide-next { animation: view-in-right .34s var(--ease) both; }
-#view.slide-prev { animation: view-in-left .34s var(--ease) both; }
-
 /* ---- 动效 ---- */
 @keyframes jelly-in {
   from { opacity: 0; transform: translateY(26px) scale(.97); }

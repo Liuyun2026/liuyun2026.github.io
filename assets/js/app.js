@@ -16,7 +16,7 @@
   var view = document.getElementById("view");
   var S = SITE;
   var introPending = true;   /* 首页开场动画是否还需要播放 */
-  var lastHash = null;       /* 已渲染过的 hash，避免同一地址重复渲染 */
+  var lastPath = null;       /* 已渲染过的路径，避免同一地址重复渲染 */
   var introTimers = [];      /* 开场动画的全部定时器，点击打断时统一清除 */
   var introRunning = false;
   var pillReady = false;     /* 导航气泡是否已完成首次定位 */
@@ -131,7 +131,7 @@
   }
 
   function projectCard(p, i) {
-    return '<a class="pcard" href="#/project/' + esc(p.id) + '">' +
+    return '<a class="pcard" href="/project/' + esc(p.id) + '">' +
       '<div class="pcard-top">' +
         '<span class="pcard-idx">P-' + pad2(i + 1) + "</span>" +
         badge(p.status) +
@@ -250,7 +250,7 @@
       title: p.title + " · " + S.meta.name,
       html: '<div class="wrap">' +
         '<div class="detail-head">' +
-          '<a class="back" href="#/projects">← 项目</a>' +
+          '<a class="back" href="/projects">← 项目</a>' +
           '<div class="pcard-top"><span class="pcard-idx">P-' + pad2(idx + 1) + "</span>" +
             badge(p.status) +
             '<span class="pcard-cat">' + esc(p.category) + (p.year ? " · " + esc(p.year) : "") + "</span></div>" +
@@ -270,7 +270,7 @@
   }
 
   function noteRow(n) {
-    return '<a class="nitem" href="#/note/' + esc(n.id) + '">' +
+    return '<a class="nitem" href="/note/' + esc(n.id) + '">' +
       '<span class="date">' + esc(n.date || "—") + "</span>" +
       "<div><h3>" + esc(n.title) + "</h3><p>" + esc(n.summary) + "</p></div>" +
       '<span class="arrow">→</span></a>';
@@ -317,7 +317,7 @@
       title: n.title + " · " + S.meta.name,
       html: '<div class="wrap">' +
         '<div class="detail-head">' +
-          '<a class="back" href="#/notes">← 笔记</a>' +
+          '<a class="back" href="/notes">← 笔记</a>' +
           "<h1>" + esc(n.title) + "</h1>" +
           '<div class="sub">' + (n.date ? esc(n.date) + " · " : "") +
             (n.tags || []).map(esc).join(" · ") + "</div>" +
@@ -406,14 +406,19 @@
       title: "未找到 · " + S.meta.name,
       html: '<div class="wrap"><section class="block" style="padding-top:80px">' +
         '<div class="empty">404 · 这一页不存在<br><br>' +
-        '<a href="#/">← 回首页</a></div></section></div>'
+        '<a href="/">← 回首页</a></div></section></div>'
     };
   }
 
   /* ---------- 路由 ---------- */
 
+  function currentPath() {
+    var p = location.pathname.replace(/\/+$/, "");
+    return p || "/";
+  }
+
   function route() {
-    var h = location.hash.replace(/^#\/?/, "").trim();
+    var h = currentPath().replace(/^\//, "");
     var parts = h.split("/").filter(Boolean);
     var seg = parts[0] || "";
     var arg = parts[1] ? decodeURIComponent(parts[1]) : "";
@@ -452,24 +457,40 @@
   }
 
   /* ---------- 页面切换 ----------
-   * 优先用 View Transition（浏览器原生交叉淡化），不支持时退回 CSS 动画
+   * 旧内容淡出并轻微左移 → 换内容 → 新内容淡入并回到原位
+   * 不依赖 View Transition，任何浏览器表现一致
    */
+  var transitioning = false;
+
   function navigate(target, dir) {
-    if (!target || target === location.hash) return;
+    if (!target || target === currentPath() || transitioning) return;
 
-    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var next = dir > 0;
+    transitioning = true;
 
-    if (document.startViewTransition && !reduce) {
-      document.documentElement.setAttribute("data-dir", dir > 0 ? "next" : "prev");
-      document.startViewTransition(function () {
-        slideClass = "";
-        location.hash = target;
-        render();
-      });
-    } else {
-      slideClass = dir > 0 ? "slide-next" : "slide-prev";
-      location.hash = target;
-    }
+    view.style.transition = "opacity .17s ease, transform .17s ease";
+    view.style.opacity = "0";
+    view.style.transform = "translateX(" + (next ? -22 : 22) + "px)";
+
+    window.setTimeout(function () {
+      try { history.pushState({ path: target }, "", target); } catch (err) { location.hash = target; }
+      render();
+
+      view.style.transition = "none";
+      view.style.transform = "translateX(" + (next ? 22 : -22) + "px)";
+      void view.offsetWidth;
+
+      view.style.transition = "opacity .26s ease, transform .32s cubic-bezier(.2, 1, .3, 1)";
+      view.style.opacity = "1";
+      view.style.transform = "none";
+
+      window.setTimeout(function () {
+        view.style.transition = "";
+        view.style.opacity = "";
+        view.style.transform = "";
+        transitioning = false;
+      }, 340);
+    }, 175);
   }
 
   /* ---------- 首页开场动画 ----------
@@ -580,7 +601,7 @@
     document.title = r.title || S.meta.name;
     if (typeof r.mount === "function") r.mount();
 
-    var seg = location.hash.replace(/^#\/?/, "").split("/")[0] || "";
+    var seg = currentPath().replace(/^\//, "").split("/")[0] || "";
     var key = /^(project|projects)$/.test(seg) ? "projects"
       : /^(note|notes)$/.test(seg) ? "notes"
       : seg;
@@ -595,7 +616,7 @@
       window.setTimeout(playIntro, 40);
     }
 
-    lastHash = location.hash;
+    lastPath = currentPath();
 
     if (slideClass) {
       view.classList.remove("slide-next", "slide-prev");
@@ -621,7 +642,7 @@
   var slideClass = "";
 
   function pageIndex() {
-    var seg = location.hash.replace(/^#\/?/, "").split("/")[0] || "";
+    var seg = currentPath().replace(/^\//, "").split("/")[0] || "";
     return PAGE_ORDER.indexOf(seg);
   }
 
@@ -630,8 +651,8 @@
     if (i < 0) return;
     var n = i + dir;
     if (n < 0 || n >= PAGE_ORDER.length) return;
-    var target = PAGE_ORDER[n] ? "#/" + PAGE_ORDER[n] : "#/";
-    navigate(target, dir);
+    var target = "/" + PAGE_ORDER[n];
+    navigate(target.replace(/\/$/, "") || "/", dir);
   }
 
   function initSwipe() {
@@ -675,22 +696,22 @@
     document.getElementById("footLinks").innerHTML = links;
   }
 
-  window.addEventListener("hashchange", function () {
-    if (location.hash === lastHash) return;
+  window.addEventListener("popstate", function () {
+    if (currentPath() === lastPath) return;
     render();
   });
 
   /* 站内所有 hash 链接统一走 navigate，保证每次切换都有过渡 */
   document.addEventListener("click", function (e) {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-    var a = e.target && e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    var a = e.target && e.target.closest ? e.target.closest('a[href^="/"]') : null;
     if (!a) return;
     var href = a.getAttribute("href");
-    if (!href || href.length < 2) return;
+    if (!href || href.indexOf("//") === 0) return;
     e.preventDefault();
 
-    var cur = PAGE_ORDER.indexOf(location.hash.replace(/^#\/?/, "").split("/")[0] || "");
-    var nxt = PAGE_ORDER.indexOf(href.replace(/^#\/?/, "").split("/")[0] || "");
+    var cur = PAGE_ORDER.indexOf(currentPath().replace(/^\//, "").split("/")[0] || "");
+    var nxt = PAGE_ORDER.indexOf(href.replace(/^\//, "").split("/")[0] || "");
     navigate(href, (cur >= 0 && nxt >= 0 && nxt < cur) ? -1 : 1);
   });
 
