@@ -334,7 +334,7 @@ body.intro-on .nav {
 /* ---- 开场动画 ---- */
 /* 卡片铺满时，内容先隐藏，避免被放大变形 */
 .jelly > * { transition: opacity .55s ease, transform .7s var(--ease); }
-.jelly.is-intro > * {
+.jelly.is-intro > *:not(.intro-layer) {
   opacity: 0;
   transform: translateY(14px);
   transition: none;
@@ -350,37 +350,61 @@ body.intro-on .nav {
 .jelly.is-intro::before,
 .jelly.is-intro::after { display: none; }
 
-/* 全屏居中的大字：你好 */
-.intro-hello {
-  position: fixed;
+/* 开场文字层：绝对定位在卡片内部，随卡片一起缩放，不会飘在屏幕中央 */
+.intro-layer {
+  position: absolute;
   inset: 0;
-  z-index: 45;
+  z-index: 2;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: .06em;
+  gap: calc(20px / var(--cs, 4));
   pointer-events: none;
-  font-size: clamp(84px, 15vw, 176px);
+  opacity: 0;
+  transition: opacity .45s ease;
+}
+.intro-layer.on { opacity: 1; }
+.intro-layer > * {
+  opacity: 0;
+  transform: translateY(calc(14px / var(--cs, 4)));
+  transition: opacity .5s ease, transform .6s var(--ease);
+}
+
+.intro-hello {
+  display: flex;
+  gap: .06em;
+  font-size: calc(92px / var(--cs, 4));
   font-weight: 800;
-  letter-spacing: .03em;
+  letter-spacing: .04em;
   color: #FFFFFF;
-  text-shadow: 0 0 48px rgba(150, 195, 255, .55);
-  transition: transform .85s cubic-bezier(.45, 0, .75, .2), opacity .6s ease;
-  will-change: transform, opacity;
+  text-shadow: 0 0 calc(34px / var(--cs, 4)) rgba(150, 195, 255, .5);
+  transition: opacity .55s ease, transform .55s ease;
 }
 .intro-hello span {
   display: inline-block;
   opacity: 0;
-  transform: translateY(30px) scale(.94);
-  transition: opacity .55s ease, transform .8s cubic-bezier(.2, 1.3, .36, 1);
+  transform: translateY(calc(24px / var(--cs, 4)));
+  transition: opacity .45s ease, transform .65s cubic-bezier(.2, 1.25, .36, 1);
 }
+.intro-hello.show { opacity: 1; transform: none; }
 .intro-hello.show span { opacity: 1; transform: none; }
-.intro-hello.show span:nth-child(2) { transition-delay: .13s; }
-/* 缩小上移，交给卡片里的「你好」标签接棒 */
-.intro-hello.shrink {
-  transform: translateY(-15vh) scale(.15);
+.intro-hello.show span:nth-child(2) { transition-delay: .14s; }
+.intro-hello.out {
   opacity: 0;
+  transform: translateY(calc(-16px / var(--cs, 4)));
 }
+
+.intro-welcome {
+  font-size: calc(25px / var(--cs, 4));
+  font-weight: 600;
+  letter-spacing: .01em;
+  color: #FFFFFF;
+  text-align: center;
+  text-shadow: 0 0 calc(22px / var(--cs, 4)) rgba(150, 195, 255, .45);
+}
+.intro-welcome .hl { color: #A9CBFF; }
+.intro-welcome.in { opacity: 1; transform: none; }
 
 /* 下 1/3：气泡目录 */
 .bubbles {
@@ -414,10 +438,8 @@ body.intro-on .nav {
   animation: none;
 }
 /* 卡片落定后由 JS 加上 .play，气泡自下而上依次弹起 */
-body.intro-on .bubble {
-  opacity: 0;
-  transform: translateY(150px) scale(.8);
-}
+body.intro-on .bubbles,
+body.intro-on footer { visibility: hidden; }
 
 .bubbles.play .bubble {
   animation: bubble-pop .92s cubic-bezier(.34, 1.45, .5, 1) backwards, float 7s ease-in-out infinite;
