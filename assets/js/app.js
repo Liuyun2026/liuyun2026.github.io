@@ -1,0 +1,461 @@
+/* ============================================================================
+ * app.js —— 极简 hash 路由 + 渲染
+ *
+ * 路由表：
+ *   #/                首页
+ *   #/projects        项目列表
+ *   #/project/:id     项目详情
+ *   #/notes           笔记列表
+ *   #/note/:id        笔记正文
+ *   #/files           资料
+ * ========================================================================== */
+
+(function () {
+  "use strict";
+
+  var view = document.getElementById("view");
+  var S = SITE;
+
+  /* ---------- 工具 ---------- */
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  /* 行内标记：`code` / **粗** / [文字](链接) */
+  function inline(t) {
+    return esc(t)
+      .replace(/`([^`]+)`/g, "<code>$1</code>")
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
+        '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  }
+
+  /* 行级解析：## 标题 / - 列表 / > 引用 / ``` 代码块 / 空行分段 */
+  function md(lines) {
+    var html = "", para = [], inList = false, inQuote = false;
+
+    function flushPara() {
+      if (para.length) { html += "<p>" + inline(para.join(" ")) + "</p>"; para = []; }
+    }
+    function closeList() { if (inList) { html += "</ul>"; inList = false; } }
+    function closeQuote() { if (inQuote) { html += "</blockquote>"; inQuote = false; } }
+
+    for (var i = 0; i < lines.length; i++) {
+      var line = String(lines[i]).trim();
+
+      if (line.indexOf("```") === 0) {
+        flushPara(); closeList(); closeQuote();
+        var code = [];
+        i++;
+        while (i < lines.length && String(lines[i]).trim().indexOf("```") !== 0) {
+          code.push(lines[i]); i++;
+        }
+        html += "<pre><code>" + esc(code.join("\n")) + "</code></pre>";
+        continue;
+      }
+      if (!line) { flushPara(); closeList(); closeQuote(); continue; }
+
+      if (line.indexOf("## ") === 0) {
+        flushPara(); closeList(); closeQuote();
+        html += "<h2>" + inline(line.slice(3)) + "</h2>";
+        continue;
+      }
+      if (line.indexOf("### ") === 0) {
+        flushPara(); closeList(); closeQuote();
+        html += "<h3>" + inline(line.slice(4)) + "</h3>";
+        continue;
+      }
+      if (line.indexOf("- ") === 0) {
+        flushPara(); closeQuote();
+        if (!inList) { html += "<ul>"; inList = true; }
+        html += "<li>" + inline(line.slice(2)) + "</li>";
+        continue;
+      }
+      if (line.indexOf("> ") === 0) {
+        flushPara(); closeList();
+        if (!inQuote) { html += "<blockquote>"; inQuote = true; }
+        html += "<p>" + inline(line.slice(2)) + "</p>";
+        continue;
+      }
+
+      closeList(); closeQuote();
+      para.push(line);
+    }
+    flushPara(); closeList(); closeQuote();
+    return html;
+  }
+
+  function pad2(n) { return n < 10 ? "0" + n : "" + n; }
+
+  /* 状态色：进行中 → 黄，锁定/在用 → 绿，开源/发布 → 蓝 */
+  function badgeClass(status) {
+    var s = status || "";
+    if (/进行中|设计中|草稿|待补/.test(s)) return "warn";
+    if (/开源|发布/.test(s)) return "info";
+    if (/固化|在用|完成/.test(s)) return "ok";
+    return "mute";
+  }
+
+  function badge(status) {
+    return '<span class="badge badge--' + badgeClass(status) + '">' + esc(status) + "</span>";
+  }
+
+  function tags(list) {
+    if (!list || !list.length) return "";
+    return '<div class="tags">' + list.map(function (t) {
+      return '<span class="tag">' + esc(t) + "</span>";
+    }).join("") + "</div>";
+  }
+
+  function secHead(kicker, title, count) {
+    return '<div class="sec-head"><span class="kicker">' + esc(kicker) + "</span><h2>" +
+      esc(title) + "</h2>" + (count != null ? '<span class="count">' + esc(count) + "</span>" : "") + "</div>";
+  }
+
+  /* ---------- 组件 ---------- */
+
+  function specCard() {
+    return '<aside class="spec-card">' +
+      '<div class="card-title"><span>DEVICE PROFILE</span><span>REV.A</span></div>' +
+      "<dl>" + S.spec.map(function (row) {
+        return '<div class="spec-row"><dt>' + esc(row[0]) + "</dt><dd>" + esc(row[1]) + "</dd></div>";
+      }).join("") + "</dl></aside>";
+  }
+
+  function projectCard(p, i) {
+    return '<a class="pcard" href="#/project/' + esc(p.id) + '">' +
+      '<div class="pcard-top">' +
+        '<span class="pcard-idx">P-' + pad2(i + 1) + "</span>" +
+        badge(p.status) +
+        '<span class="pcard-cat">' + esc(p.category || "") + "</span>" +
+      "</div>" +
+      "<h3>" + esc(p.title) + "</h3>" +
+      '<div class="sub">' + esc(p.subtitle) + "</div>" +
+      '<p class="sum">' + esc(p.summary) + "</p>" +
+      tags(p.tags) + "</a>";
+  }
+
+  function specTable(specs) {
+    return '<table class="spectable"><caption>SPECIFICATIONS</caption><tbody>' +
+      specs.map(function (r) {
+        return "<tr><th>" + esc(r[0]) + "</th><td>" + esc(r[1]) + "</td></tr>";
+      }).join("") + "</tbody></table>";
+  }
+
+  /* ---------- 视图 ---------- */
+
+  function viewHome() {
+    var featured = S.projects.filter(function (p) { return p.featured; }).slice(0, 4);
+    var recent = S.notes.filter(function (n) { return !n.draft; }).slice(0, 3);
+
+    return {
+      title: S.meta.name + " · " + S.meta.tagline.split("·")[0].trim(),
+      html: '<div class="wrap">' +
+        '<section class="hero">' +
+          "<div>" +
+            '<div class="eyebrow">HARDWARE ENGINEER</div>' +
+            "<h1>" + esc(S.meta.name) + '<span class="en">' + esc(S.meta.handle) + "</span></h1>" +
+            '<div class="role">' + esc(S.meta.tagline.split("·")[0].trim()) +
+              " · <em>" + esc(S.meta.tagline.split("·").slice(1).join("·").trim()) + "</em></div>" +
+            '<p class="intro">' + esc(S.meta.intro) + "</p>" +
+            '<div class="hero-actions">' +
+              '<a class="btn btn--solid" href="#/projects">看项目</a>' +
+              '<a class="btn" href="#/notes">技术笔记</a>' +
+              '<a class="btn" href="#/files">资料</a>' +
+            "</div>" +
+          "</div>" +
+          specCard() +
+        "</section>" +
+
+        '<section class="block">' +
+          secHead("SELECTED", "在做的东西") +
+          '<div class="cards cards--2">' +
+            featured.map(function (p) {
+              return projectCard(p, S.projects.indexOf(p));
+            }).join("") +
+          "</div>" +
+        "</section>" +
+
+        '<section class="block">' +
+          secHead("STACK", "能干的活") +
+          '<div class="skillgrid">' +
+            S.skills.map(function (g) {
+              return '<div class="skillcell"><h4>' + esc(g.group) + "</h4><ul>" +
+                g.items.map(function (it) { return "<li>" + esc(it) + "</li>"; }).join("") +
+                "</ul></div>";
+            }).join("") +
+          "</div>" +
+        "</section>" +
+
+        '<section class="block">' +
+          secHead("NOTES", "最近笔记", recent.length + " 篇") +
+          '<div class="nlist">' + recent.map(noteRow).join("") + "</div>" +
+        "</section>" +
+      "</div>"
+    };
+  }
+
+  function viewProjects() {
+    return {
+      title: "项目 · " + S.meta.name,
+      html: '<div class="wrap">' +
+        '<section class="block">' +
+          secHead("PROJECTS", "项目", S.projects.length + " 个") +
+          '<div class="filterbar" id="pfilter">' +
+            '<button class="chip on" data-cat="">全部</button>' +
+            ["硬件", "软件", "文档"].map(function (c) {
+              return '<button class="chip" data-cat="' + c + '">' + c + "</button>";
+            }).join("") +
+          "</div>" +
+          '<div class="cards" id="plist">' +
+            S.projects.map(function (p, i) { return projectCard(p, i); }).join("") +
+          "</div>" +
+        "</section>" +
+      "</div>",
+      mount: function () {
+        var list = document.getElementById("plist");
+        document.getElementById("pfilter").addEventListener("click", function (e) {
+          var btn = e.target.closest(".chip");
+          if (!btn) return;
+          [].forEach.call(this.querySelectorAll(".chip"), function (c) { c.classList.remove("on"); });
+          btn.classList.add("on");
+          var cat = btn.getAttribute("data-cat");
+          list.innerHTML = S.projects
+            .map(function (p, i) { return { p: p, i: i }; })
+            .filter(function (o) { return !cat || o.p.category === cat; })
+            .map(function (o) { return projectCard(o.p, o.i); })
+            .join("") || '<div class="empty">该分类下暂无项目</div>';
+        });
+      }
+    };
+  }
+
+  function viewProject(id) {
+    var p = null, idx = 0;
+    S.projects.forEach(function (x, i) { if (x.id === id) { p = x; idx = i; } });
+    if (!p) return viewNotFound();
+
+    var links = (p.links || []).map(function (l) {
+      return '<a class="btn" href="' + esc(l.url) + '" target="_blank" rel="noopener">' +
+        esc(l.label) + " ↗</a>";
+    }).join("");
+
+    return {
+      title: p.title + " · " + S.meta.name,
+      html: '<div class="wrap">' +
+        '<div class="detail-head">' +
+          '<a class="back" href="#/projects">← 项目</a>' +
+          '<div class="pcard-top"><span class="pcard-idx">P-' + pad2(idx + 1) + "</span>" +
+            badge(p.status) +
+            '<span class="pcard-cat">' + esc(p.category) + (p.year ? " · " + esc(p.year) : "") + "</span></div>" +
+          "<h1>" + esc(p.title) + "</h1>" +
+          '<div class="sub">' + esc(p.subtitle) + "</div>" +
+        "</div>" +
+        '<div class="detail-body">' +
+          "<div>" +
+            '<p class="lead">' + esc(p.summary) + "</p>" +
+            tags(p.tags) +
+            (links ? '<div class="link-row">' + links + "</div>" : "") +
+          "</div>" +
+          specTable(p.specs) +
+        "</div>" +
+      "</div>"
+    };
+  }
+
+  function noteRow(n) {
+    return '<a class="nitem" href="#/note/' + esc(n.id) + '">' +
+      '<span class="date">' + esc(n.date || "—") + "</span>" +
+      "<div><h3>" + esc(n.title) + "</h3><p>" + esc(n.summary) + "</p></div>" +
+      '<span class="arrow">→</span></a>';
+  }
+
+  function viewNotes() {
+    var items = S.notes.filter(function (n) { return !n.draft; });
+    return {
+      title: "笔记 · " + S.meta.name,
+      html: '<div class="wrap">' +
+        '<section class="block">' +
+          secHead("NOTES", "技术笔记", items.length + " 篇") +
+          '<div class="filterbar">' +
+            '<label class="search">' +
+              '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>' +
+              '<input id="nq" type="search" placeholder="搜索标题 / 标签" autocomplete="off">' +
+            "</label>" +
+          "</div>" +
+          '<div class="nlist" id="nlist">' + items.map(noteRow).join("") + "</div>" +
+        "</section>" +
+      "</div>",
+      mount: function () {
+        var list = document.getElementById("nlist");
+        var q = document.getElementById("nq");
+        q.addEventListener("input", function () {
+          var k = q.value.trim().toLowerCase();
+          var hit = items.filter(function (n) {
+            if (!k) return true;
+            return (n.title + " " + n.summary + " " + (n.tags || []).join(" ") + " " + (n.body || []).join(" "))
+              .toLowerCase().indexOf(k) >= 0;
+          });
+          list.innerHTML = hit.length ? hit.map(noteRow).join("") : '<div class="empty">没有匹配的笔记</div>';
+        });
+      }
+    };
+  }
+
+  function viewNote(id) {
+    var n = null;
+    S.notes.forEach(function (x) { if (x.id === id) n = x; });
+    if (!n) return viewNotFound();
+
+    return {
+      title: n.title + " · " + S.meta.name,
+      html: '<div class="wrap">' +
+        '<div class="detail-head">' +
+          '<a class="back" href="#/notes">← 笔记</a>' +
+          "<h1>" + esc(n.title) + "</h1>" +
+          '<div class="sub">' + (n.date ? esc(n.date) + " · " : "") +
+            (n.tags || []).map(esc).join(" · ") + "</div>" +
+        "</div>" +
+        '<article class="prose">' + md(n.body || []) + "</article>" +
+      "</div>"
+    };
+  }
+
+  var KIND_LABEL = { datasheet: "DS", manual: "DOC", tool: "TOOL", image: "IMG", other: "FILE" };
+  var KIND_CLASS = { manual: " fkind--manual", tool: " fkind--tool", image: " fkind--other", other: " fkind--other" };
+
+  function fileRow(f) {
+    var isLocal = !!f.path;
+    var href = f.url || f.path || "#";
+    var attrs = isLocal
+      ? ' href="' + esc(href) + '" download'
+      : ' href="' + esc(href) + '" target="_blank" rel="noopener"';
+    var kind = f.kind || "other";
+    return '<a class="frow"' + attrs + ">" +
+      '<span class="fkind' + (KIND_CLASS[kind] || "") + '">' + (KIND_LABEL[kind] || "FILE") + "</span>" +
+      '<div class="fname">' + esc(f.name) +
+        (f.note ? "<small>" + esc(f.note) + "</small>" : "") + "</div>" +
+      '<span class="fsize">' + esc(f.size || "") + "</span>" +
+      '<span class="fgo">' + (isLocal ? "下载 ↓" : "打开 ↗") + "</span></a>";
+  }
+
+  function viewFiles() {
+    var all = S.files || [];
+    return {
+      title: "资料 · " + S.meta.name,
+      html: '<div class="wrap">' +
+        '<section class="block">' +
+          secHead("FILES", "资料", all.length + " 项") +
+          '<div class="filterbar">' +
+            '<button class="chip on" data-kind="">全部</button>' +
+            ["datasheet", "manual", "tool", "image"].map(function (k) {
+              return '<button class="chip" data-kind="' + k + '">' + KIND_LABEL[k] + "</button>";
+            }).join("") +
+            '<label class="search">' +
+              '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>' +
+              '<input id="fq" type="search" placeholder="搜索资料" autocomplete="off">' +
+            "</label>" +
+          "</div>" +
+          '<div class="flist" id="flist">' +
+            (all.length ? all.map(fileRow).join("") : '<div class="empty">还没有资料</div>') +
+          "</div>" +
+          '<div class="hint">' +
+            "本地文件放在 <code>assets/files/</code> 目录下，然后在 <code>data.js</code> 的 <code>SITE.files</code> 里加一条：" +
+            "本地文件用 <code>path: \"assets/files/文件名\"</code>，外部资源用 <code>url</code>。" +
+            "支持 <code>datasheet / manual / tool / image / other</code> 五种类型，筛选项自动对应。" +
+          "</div>" +
+        "</section>" +
+      "</div>",
+      mount: function () {
+        var list = document.getElementById("flist");
+        var q = document.getElementById("fq");
+        var bar = document.querySelector(".filterbar");
+        var kind = "";
+
+        function draw() {
+          var k = q.value.trim().toLowerCase();
+          var hit = all.filter(function (f) {
+            if (kind && (f.kind || "other") !== kind) return false;
+            if (!k) return true;
+            return (f.name + " " + (f.note || "")).toLowerCase().indexOf(k) >= 0;
+          });
+          list.innerHTML = hit.length ? hit.map(fileRow).join("") : '<div class="empty">没有匹配的资料</div>';
+        }
+
+        bar.addEventListener("click", function (e) {
+          var btn = e.target.closest(".chip");
+          if (!btn) return;
+          [].forEach.call(bar.querySelectorAll(".chip"), function (c) { c.classList.remove("on"); });
+          btn.classList.add("on");
+          kind = btn.getAttribute("data-kind");
+          draw();
+        });
+        q.addEventListener("input", draw);
+      }
+    };
+  }
+
+  function viewNotFound() {
+    return {
+      title: "未找到 · " + S.meta.name,
+      html: '<div class="wrap"><section class="block" style="padding-top:80px">' +
+        '<div class="empty">404 · 这一页不存在<br><br>' +
+        '<a href="#/">← 回首页</a></div></section></div>'
+    };
+  }
+
+  /* ---------- 路由 ---------- */
+
+  function route() {
+    var h = location.hash.replace(/^#\/?/, "").trim();
+    var parts = h.split("/").filter(Boolean);
+    var seg = parts[0] || "";
+    var arg = parts[1] ? decodeURIComponent(parts[1]) : "";
+
+    if (!seg) return viewHome();
+    if (seg === "projects") return viewProjects();
+    if (seg === "project") return viewProject(arg);
+    if (seg === "notes") return viewNotes();
+    if (seg === "note") return viewNote(arg);
+    if (seg === "files") return viewFiles();
+    return viewNotFound();
+  }
+
+  function render() {
+    var r = route();
+    view.innerHTML = r.html;
+    document.title = r.title || S.meta.name;
+    if (typeof r.mount === "function") r.mount();
+
+    var seg = location.hash.replace(/^#\/?/, "").split("/")[0] || "";
+    var key = /^(project|projects)$/.test(seg) ? "projects"
+      : /^(note|notes)$/.test(seg) ? "notes"
+      : seg;
+    [].forEach.call(document.querySelectorAll("#navLinks a"), function (a) {
+      a.classList.toggle("on", a.getAttribute("data-nav") === key);
+    });
+
+    window.scrollTo(0, 0);
+  }
+
+  /* ---------- 静态部分 ---------- */
+
+  function initStatic() {
+    document.getElementById("year").textContent = S.meta.year;
+    document.getElementById("navStatus").textContent = S.meta.status;
+    document.getElementById("navGithub").href = S.meta.github;
+
+    var links = '<a href="' + esc(S.meta.github) + '" target="_blank" rel="noopener">GitHub</a>';
+    if (S.meta.email) {
+      links += '<a href="mailto:' + esc(S.meta.email) + '">' + esc(S.meta.email) + "</a>";
+    }
+    document.getElementById("footLinks").innerHTML = links;
+  }
+
+  window.addEventListener("hashchange", render);
+  initStatic();
+  render();
+})();
