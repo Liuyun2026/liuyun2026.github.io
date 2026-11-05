@@ -368,6 +368,32 @@ h1, h2, h3, h4 { margin: 0; font-weight: 640; line-height: 1.32; letter-spacing:
 .bubble:nth-child(2) { animation-delay: .22s, 1.6s; }
 .bubble:nth-child(3) { animation-delay: .32s, 2.3s; }
 
+/* 内部弧形高光 + 底部反光，做出玻璃珠的厚度 */
+.bubble { overflow: hidden; }
+.bubble::before {
+  content: "";
+  position: absolute;
+  top: -16%;
+  left: 13%;
+  width: 74%;
+  height: 54%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, .3), rgba(255, 255, 255, .07) 55%, transparent 74%);
+  filter: blur(7px);
+  pointer-events: none;
+}
+.bubble::after {
+  content: "";
+  position: absolute;
+  left: 12%; right: 12%; bottom: 5%;
+  height: 26%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(127, 178, 255, .22), transparent 72%);
+  filter: blur(9px);
+  pointer-events: none;
+}
+.bubble > * { position: relative; z-index: 1; }
+
 @keyframes float {
   0%, 100% { translate: 0 0; }
   50% { translate: 0 -7px; }
@@ -383,21 +409,46 @@ h1, h2, h3, h4 { margin: 0; font-weight: 640; line-height: 1.32; letter-spacing:
     inset 0 2px 10px rgba(255, 255, 255, .45),
     inset 0 -16px 30px -18px rgba(79, 227, 193, .5);
 }
+/* 内容像光从玻璃内部透出来：白字 + 冷色光晕，而非平涂贴纸 */
 .bubble-ico {
   display: grid;
   place-items: center;
-  color: rgba(255, 255, 255, .88);
-  transition: transform .5s var(--ease), color .3s;
+  color: rgba(255, 255, 255, .9);
+  filter: drop-shadow(0 0 9px rgba(150, 195, 255, .55));
+  transition: transform .5s var(--ease), color .35s, filter .35s;
 }
-.bubble:hover .bubble-ico { transform: scale(1.1); color: #fff; }
-.bubble-t { font-size: 15px; font-weight: 620; letter-spacing: .02em; }
+.bubble:hover .bubble-ico {
+  transform: scale(1.08);
+  color: #FFFFFF;
+  filter: drop-shadow(0 0 16px rgba(170, 210, 255, .9));
+}
+.bubble-t {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: rgba(255, 255, 255, .95);
+  text-shadow:
+    0 0 18px rgba(150, 195, 255, .55),
+    0 0 40px rgba(127, 178, 255, .3),
+    0 1px 1px rgba(3, 6, 12, .5);
+  transition: color .35s, text-shadow .35s;
+}
+.bubble:hover .bubble-t {
+  color: #FFFFFF;
+  text-shadow:
+    0 0 22px rgba(170, 210, 255, .85),
+    0 0 48px rgba(127, 178, 255, .45);
+}
 .bubble-e {
   font-family: var(--mono);
   font-size: 9px;
   letter-spacing: .18em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, .45);
+  color: rgba(210, 228, 255, .42);
+  text-shadow: 0 0 12px rgba(127, 178, 255, .4);
+  transition: color .35s;
 }
+.bubble:hover .bubble-e { color: rgba(226, 238, 255, .78); }
 
 /* 首页往下滚动区 */
 .home-more { padding: 10px 0 20px; }
