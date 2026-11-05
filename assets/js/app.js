@@ -16,6 +16,8 @@
   var view = document.getElementById("view");
   var S = SITE;
   var introPending = true;   /* 首页开场动画是否还需要播放 */
+  var lastHash = null;       /* 已渲染过的 hash，避免同一地址重复渲染 */
+  var pillReady = false;     /* 导航气泡是否已完成首次定位 */
 
   /* ---------- 工具 ---------- */
 
@@ -423,6 +425,51 @@
     return viewNotFound();
   }
 
+  /* ---------- 导航气泡 ----------
+   * 气泡是绝对定位的，位置与宽度取自当前选中项，用 transform 平移实现滑动
+   */
+  function movePill(animate) {
+    var pill = document.querySelector(".nav-pill");
+    var links = document.querySelectorAll("#navLinks a");
+    if (!pill || !links.length) return;
+
+    var active = null;
+    for (var i = 0; i < links.length; i++) {
+      if (links[i].classList.contains("on")) { active = links[i]; break; }
+    }
+    if (!active) { pill.style.opacity = "0"; return; }
+
+    if (!animate) pill.style.transition = "none";
+    pill.style.width = active.offsetWidth + "px";
+    pill.style.transform = "translateX(" + active.offsetLeft + "px)";
+    pill.style.opacity = "1";
+    if (!animate) {
+      void pill.offsetWidth;
+      pill.style.transition = "";
+    }
+  }
+
+  /* ---------- 页面切换 ----------
+   * 优先用 View Transition（浏览器原生交叉淡化），不支持时退回 CSS 动画
+   */
+  function navigate(target, dir) {
+    if (!target || target === location.hash) return;
+
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (document.startViewTransition && !reduce) {
+      document.documentElement.setAttribute("data-dir", dir > 0 ? "next" : "prev");
+      document.startViewTransition(function () {
+        slideClass = "";
+        location.hash = target;
+        render();
+      });
+    } else {
+      slideClass = dir > 0 ? "slide-next" : "slide-prev";
+      location.hash = target;
+    }
+  }
+
   /* ---------- 首页开场动画 ----------
    * 时间轴：
    *   0.00s  卡片铺满全屏，「你好」逐字浮现
@@ -507,6 +554,8 @@
       window.setTimeout(playIntro, 40);
     }
 
+    lastHash = location.hash;
+
     if (slideClass) {
       view.classList.remove("slide-next", "slide-prev");
       void view.offsetWidth;
@@ -516,6 +565,10 @@
       })(slideClass);
       slideClass = "";
     }
+
+    /* 首次定位不要动画，之后跟随选中项滑动 */
+    movePill(pillReady);
+    pillReady = true;
   }
 
   /* ---------- 左右滑动切换 ----------
@@ -537,9 +590,7 @@
     var n = i + dir;
     if (n < 0 || n >= PAGE_ORDER.length) return;
     var target = PAGE_ORDER[n] ? "#/" + PAGE_ORDER[n] : "#/";
-    if (location.hash === target || (!location.hash && !target)) return;
-    slideClass = dir > 0 ? "slide-next" : "slide-prev";
-    location.hash = target;
+    navigate(target, dir);
   }
 
   function initSwipe() {
@@ -583,7 +634,26 @@
     document.getElementById("footLinks").innerHTML = links;
   }
 
-  window.addEventListener("hashchange", render);
+  window.addEventListener("hashchange", function () {
+    if (location.hash === lastHash) return;
+    render();
+  });
+
+  /* 站内所有 hash 链接统一走 navigate，保证每次切换都有过渡 */
+  document.addEventListener("click", function (e) {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    var a = e.target && e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (!a) return;
+    var href = a.getAttribute("href");
+    if (!href || href.length < 2) return;
+    e.preventDefault();
+
+    var cur = PAGE_ORDER.indexOf(location.hash.replace(/^#\/?/, "").split("/")[0] || "");
+    var nxt = PAGE_ORDER.indexOf(href.replace(/^#\/?/, "").split("/")[0] || "");
+    navigate(href, (cur >= 0 && nxt >= 0 && nxt < cur) ? -1 : 1);
+  });
+
+  window.addEventListener("resize", function () { movePill(false); });
   initSwipe();
   initStatic();
   render();
