@@ -30,7 +30,7 @@
     width: 100%;
     padding: 0 24px 60px;
     display: grid;
-    grid-template-columns: 320px minmax(0, 1fr);
+    grid-template-columns: 260px minmax(0, 1fr) 380px;
     gap: 16px;
     align-items: start;
   }
@@ -109,8 +109,9 @@
   .adm-token { display: flex; gap: 8px; margin-bottom: 14px; }
   .adm-token input { flex: 1; }
   .adm-token button {
-    padding: 0 16px; border-radius: 10px; cursor: pointer; font-size: 12.5px; font-family: inherit;
+    padding: 0 14px; border-radius: 10px; cursor: pointer; font-size: 12.5px; font-family: inherit;
     color: var(--fg); background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
+    white-space: nowrap; flex-shrink: 0;
   }
 
   .adm-manual {
@@ -148,7 +149,33 @@
   }
   .adm-attach-actions button:hover { color: #fff; border-color: rgba(255,255,255,.28); }
 
+  .adm-preview {
+    position: sticky; top: 76px;
+    min-height: calc(100vh - 180px);
+    max-height: calc(100vh - 96px);
+    overflow-y: auto;
+  }
+  .adm-preview-head {
+    font-size: 11.5px; color: var(--fg-3); letter-spacing: .08em;
+    margin-bottom: 14px; padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .adm-preview-body { font-size: 13.5px; }
+  .adm-preview-body h2 { font-size: 16px; margin: 20px 0 10px; padding-left: 12px; }
+  .adm-preview-body h3 { font-size: 14px; margin: 16px 0 8px; }
+  .adm-preview-body p { font-size: 13.5px; line-height: 1.8; margin-bottom: 12px; }
+  .adm-preview-body ul { padding-left: 18px; margin-bottom: 12px; }
+  .adm-preview-body li { font-size: 13.5px; margin: 4px 0; }
+  .adm-preview-body table { font-size: 12px; }
+  .adm-preview-body th, .adm-preview-body td { padding: 7px 9px; }
+  .adm-preview-body img { margin: 12px 0; }
+
   .adm-empty { padding: 40px 10px; text-align: center; color: var(--fg-3); font-size: 13px; }
+
+  @media (max-width: 1280px) {
+    .adm-main { grid-template-columns: 260px minmax(0, 1fr); }
+    .adm-preview { display: none; }
+  }
 
   @media (max-width: 860px) {
     .adm-main { padding-left: 14px; padding-right: 14px; padding-bottom: 40px; }
@@ -188,6 +215,13 @@
   </aside>
 
   <section class="adm-panel" id="edit"></section>
+
+  <aside class="adm-panel adm-preview">
+    <div class="adm-preview-head">预览 · 正文</div>
+    <div class="prose adm-preview-body" id="previewBody">
+      <div class="hintline">选中一条内容后，这里显示正文效果</div>
+    </div>
+  </aside>
 </main>
 
 <script>
@@ -306,6 +340,120 @@
     ta.selectionStart = ta.selectionEnd = pos;
     ta.dispatchEvent(new Event("input", { bubbles: true }));
     ta.focus();
+  }
+
+  /* ---------- 预览渲染 ----------
+   * 支持标题、列表、引用、代码块、表格、图片、链接，够预览正文用
+   */
+  function inlineMd(t) {
+    var codes = [];
+    var s = String(t).replace(/`([^`]+)`/g, function (_, c) {
+      codes.push(c);
+      return "\u0001" + (codes.length - 1) + "\u0001";
+    });
+    s = esc(s)
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, '<img src="$2" alt="$1" loading="lazy">')
+      .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    return s.replace(/\u0001(\d+)\u0001/g, function (_, n) {
+      return "<code>" + esc(codes[+n]) + "</code>";
+    });
+  }
+
+  function tableCells(line) {
+    var str = String(line).trim().replace(/^\|/, "").replace(/\|$/, "");
+    var cells = [], cur = "";
+    for (var i = 0; i < str.length; i++) {
+      var ch = str[i];
+      if (ch === "\\" && str[i + 1] === "|") { cur += "|"; i++; continue; }
+      if (ch === "|") { cells.push(cur.trim()); cur = ""; continue; }
+      cur += ch;
+    }
+    cells.push(cur.trim());
+    return cells;
+  }
+
+  function renderMd(text) {
+    var lines = String(text).replace(/\r\n/g, "\n").split("\n");
+    var out = [], i = 0;
+
+    while (i < lines.length) {
+      var line = lines[i];
+
+      if (/^\s*```/.test(line)) {
+        var buf = [];
+        i++;
+        while (i < lines.length && !/^\s*```/.test(lines[i])) { buf.push(lines[i]); i++; }
+        i++;
+        out.push("<pre><code>" + esc(buf.join("\n")) + "</code></pre>");
+        continue;
+      }
+
+      if (/^\s*\|/.test(line) && i + 1 < lines.length && /^\s*\|[\s:|-]+\|?[\s:|-]*$/.test(lines[i + 1])) {
+        var head = tableCells(line);
+        i += 2;
+        var body = [];
+        while (i < lines.length && /^\s*\|/.test(lines[i])) { body.push(tableCells(lines[i])); i++; }
+        out.push('<div class="tablewrap"><table><thead><tr>' +
+          head.map(function (c) { return "<th>" + inlineMd(c) + "</th>"; }).join("") +
+          "</tr></thead><tbody>" +
+          body.map(function (r) {
+            return "<tr>" + r.map(function (c) { return "<td>" + inlineMd(c) + "</td>"; }).join("") + "</tr>";
+          }).join("") + "</tbody></table></div>");
+        continue;
+      }
+
+      var m = line.match(/^(#{1,4})\s+(.*)$/);
+      if (m) {
+        var lv = Math.min(m[1].length + 1, 4);
+        out.push("<h" + lv + ">" + inlineMd(m[2]) + "</h" + lv + ">");
+        i++;
+        continue;
+      }
+
+      if (/^\s*[-*]\s+/.test(line)) {
+        var ul = [];
+        while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) {
+          ul.push(lines[i].replace(/^\s*[-*]\s+/, ""));
+          i++;
+        }
+        out.push("<ul>" + ul.map(function (x) { return "<li>" + inlineMd(x) + "</li>"; }).join("") + "</ul>");
+        continue;
+      }
+
+      if (/^\s*>\s?/.test(line)) {
+        var q = [];
+        while (i < lines.length && /^\s*>\s?/.test(lines[i])) {
+          q.push(lines[i].replace(/^\s*>\s?/, ""));
+          i++;
+        }
+        out.push("<blockquote><p>" + inlineMd(q.join(" ")) + "</p></blockquote>");
+        continue;
+      }
+
+      if (!line.trim()) { i++; continue; }
+
+      var para = [];
+      while (i < lines.length && lines[i].trim() &&
+             !/^(#{1,4}\s|\s*\||\s*[-*]\s|\s*>|\s*```)/.test(lines[i])) {
+        para.push(lines[i]);
+        i++;
+      }
+      if (para.length) out.push("<p>" + inlineMd(para.join(" ")) + "</p>");
+    }
+    return out.join("");
+  }
+
+  function updatePreview(it) {
+    var box = $("previewBody");
+    if (!box) return;
+    var body = (it && it.body) || [];
+    var text = body.join("\n").trim();
+    if (!text) {
+      box.innerHTML = '<div class="hintline">这条还没有正文</div>';
+      return;
+    }
+    box.innerHTML = renderMd(text);
   }
 
   /* ---------- 上传 ---------- */
@@ -432,6 +580,7 @@
     var it = items()[curIndex];
     if (!it) {
       $("edit").innerHTML = '<div class="adm-empty">从左侧选一条，或点「新建一条」</div>';
+      updatePreview(null);
       return;
     }
 
@@ -522,6 +671,8 @@
     $("delBtn").addEventListener("click", delCurrent);
     var sb = $("saveBtn");
     if (sb) sb.addEventListener("click", save);
+
+    updatePreview(it);
   }
 
   function applyField(el) {
@@ -544,6 +695,7 @@
       it.tags = v.split(/[、,，]/).map(function (t) { return t.trim(); }).filter(Boolean);
     } else if (k === "body") {
       it.body = v.split("\n");
+      updatePreview(it);
     } else {
       it[k] = v;
     }
