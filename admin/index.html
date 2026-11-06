@@ -12,7 +12,7 @@
   .adm-top {
     position: sticky; top: 0; z-index: 20;
     display: flex; align-items: center; gap: 14px;
-    max-width: 1440px; margin: 0 auto;
+    width: 100%;
     padding: 18px 24px 14px;
     background: linear-gradient(180deg, rgba(7,9,16,.92), rgba(7,9,16,.6) 70%, transparent);
     -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
@@ -27,8 +27,8 @@
   .adm-status.on { color: var(--ok); border-color: rgba(95,217,139,.3); background: rgba(95,217,139,.1); }
 
   .adm-main {
-    max-width: 1440px; margin: 0 auto; padding: 0 24px 130px;
-    display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; align-items: start;
+    width: 100%; padding: 0 24px 130px;
+    display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 16px; align-items: start;
   }
 
   .adm-panel {
@@ -89,7 +89,7 @@
     -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
   }
   .adm-bar > div {
-    max-width: 1440px; margin: 0 auto; width: 100%;
+    width: 100%;
     display: flex; align-items: center; gap: 14px;
   }
   .adm-save {
