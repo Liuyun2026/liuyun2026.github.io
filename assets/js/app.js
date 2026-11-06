@@ -122,14 +122,6 @@
 
   /* ---------- 组件 ---------- */
 
-  function specCard() {
-    return '<aside class="spec-card">' +
-      '<div class="card-title"><span>DEVICE PROFILE</span><span>REV.A</span></div>' +
-      "<dl>" + S.spec.map(function (row) {
-        return '<div class="spec-row"><dt>' + esc(row[0]) + "</dt><dd>" + esc(row[1]) + "</dd></div>";
-      }).join("") + "</dl></aside>";
-  }
-
   function projectCard(p, i) {
     return '<a class="pcard" href="/project/' + esc(p.id) + '">' +
       '<div class="pcard-top">' +
@@ -368,9 +360,8 @@
             (all.length ? all.map(fileRow).join("") : '<div class="empty">还没有资料</div>') +
           "</div>" +
           '<div class="hint">' +
-            "本地文件放在 <code>assets/files/</code> 目录下，然后在 <code>data.js</code> 的 <code>SITE.files</code> 里加一条：" +
-            "本地文件用 <code>path: \"assets/files/文件名\"</code>，外部资源用 <code>url</code>。" +
-            "支持 <code>datasheet / manual / tool / image / other</code> 五种类型，筛选项自动对应。" +
+            "资料条目在管理端添加，填名称、类型与网盘链接即可。" +
+            "类型取 <code>datasheet / manual / tool / image / other</code>，对应列表左侧的小标签。" +
           "</div>" +
         "</section>" +
       "</div>",
@@ -700,16 +691,10 @@
   /* ---------- 静态部分 ---------- */
 
   function initStatic() {
-    var yearEl = document.getElementById("year");
-    if (yearEl) yearEl.textContent = S.meta.year;
     document.getElementById("navStatus").textContent = S.meta.status;
     document.getElementById("navGithub").href = S.meta.github;
-
-    var links = '<a href="' + esc(S.meta.github) + '" target="_blank" rel="noopener">GitHub</a>';
-    if (S.meta.email) {
-      links += '<a href="mailto:' + esc(S.meta.email) + '">' + esc(S.meta.email) + "</a>";
-    }
-    document.getElementById("footLinks").innerHTML = links;
+    document.getElementById("footLinks").innerHTML =
+      '<a href="' + esc(S.meta.github) + '" target="_blank" rel="noopener">GitHub</a>';
   }
 
   window.addEventListener("popstate", function () {
