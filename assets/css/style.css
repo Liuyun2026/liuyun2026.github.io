@@ -188,12 +188,12 @@ body.intro-on .nav {
   border-radius: 999px;
   z-index: 0;
   opacity: 0;
-  background: rgba(255, 255, 255, .16);
-  -webkit-backdrop-filter: blur(10px) saturate(160%);
-  backdrop-filter: blur(10px) saturate(160%);
+  background: rgba(26, 35, 51, .55);
+  -webkit-backdrop-filter: blur(14px) saturate(170%);
+  backdrop-filter: blur(14px) saturate(170%);
   border: 1px solid rgba(255, 255, 255, .22);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, .4),
+    inset 0 1px 0 rgba(255, 255, 255, .3),
     0 6px 16px -8px rgba(0, 0, 0, .7);
   transition:
     transform .42s cubic-bezier(.3, 1.1, .4, 1),
@@ -292,27 +292,19 @@ body.intro-on .nav {
 }
 .jelly > * { position: relative; z-index: 1; }
 
+/* 「你好」与标题同一套字体，纯文字，不套胶囊 */
 .jelly-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: .22em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, .62);
-  padding: 5px 14px 5px 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, .08);
-  border: 1px solid rgba(255, 255, 255, .1);
-  margin-bottom: 26px;
-}
-.jelly-tag::before {
-  content: "";
-  width: 5px; height: 5px;
-  border-radius: 50%;
-  background: var(--accent-2);
-  box-shadow: 0 0 10px var(--accent-2);
+  display: block;
+  font-family: var(--sans);
+  font-size: clamp(16px, 2.6vw, 22px);
+  font-weight: 700;
+  letter-spacing: -.01em;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, .68);
+  background: none;
+  border: 0;
+  padding: 0;
+  margin-bottom: 10px;
 }
 
 /* 标题用实色而非渐变文字：background-clip:text 在部分移动端浏览器
@@ -797,11 +789,11 @@ section.block { padding: 26px 0; }
 .chip.on {
   color: #FFFFFF;
   font-weight: 600;
-  background: rgba(255, 255, 255, .16);
-  border-color: rgba(255, 255, 255, .24);
-  -webkit-backdrop-filter: blur(10px) saturate(160%);
-  backdrop-filter: blur(10px) saturate(160%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35);
+  background: rgba(26, 35, 51, .55);
+  border-color: rgba(255, 255, 255, .22);
+  -webkit-backdrop-filter: blur(14px) saturate(170%);
+  backdrop-filter: blur(14px) saturate(170%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28);
 }
 
 .search { margin-left: auto; position: relative; display: flex; align-items: center; }
