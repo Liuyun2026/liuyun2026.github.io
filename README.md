@@ -1,17 +1,21 @@
-# 流雲的个人站点
+# 流雲的创客空间
 
-纯静态单页站点，无框架、无构建步骤、无后端。原生 JavaScript 加 hash 路由，全部内容由一份数据文件驱动。
+纯静态站点，无框架、无构建步骤、无自建后端。原生 JavaScript 加路径路由，内容集中在单个 JSON 文件里，供访客端与管理端共用。
 
 线上地址：<https://liuyun2026.github.io>
+管理端：<https://liuyun2026.github.io/admin/>
 
 ## 目录结构
 
 ```
-index.html              页面外壳：导航、页脚、内容挂载点
+index.html              访客端外壳：导航、页脚、内容挂载点
+404.html                GitHub Pages 深层路径兜底，发布时由 index.html 复制
+admin/index.html        管理端：网页上编辑内容并提交到仓库
 assets/css/style.css    全部样式，颜色与间距集中在 :root 变量里
-assets/js/data.js       内容数据源：项目、笔记、资料、技能
-assets/js/app.js        路由、渲染、筛选与搜索
-assets/files/           本地资料文件（datasheet、手册等）
+assets/js/app.js        路由、渲染、开场动画、滑动手势
+assets/data/content.json  内容数据源：项目、笔记、资料、技能
+assets/img/wallpaper.jpg  背景壁纸
+.github/workflows/pages.yml  推送后自动部署
 .nojekyll               关闭 Jekyll 处理，按静态文件原样发布
 ```
 
@@ -19,27 +23,39 @@ assets/files/           本地资料文件（datasheet、手册等）
 
 | 地址 | 页面 |
 |---|---|
-| `#/` | 首页 |
-| `#/projects` | 项目列表 |
-| `#/project/<id>` | 项目详情 |
-| `#/notes` | 笔记列表 |
-| `#/note/<id>` | 笔记正文 |
-| `#/files` | 资料 |
+| `/` | 首页 |
+| `/projects` | 项目列表 |
+| `/project/<id>` | 项目详情 |
+| `/notes` | 笔记列表 |
+| `/note/<id>` | 笔记详情 |
+| `/files` | 资料 |
+| `/admin/` | 管理端 |
+
+地址不带 `#`，用 History API 切换；深层路径由 `404.html` 兜底，直接访问或刷新都不会 404。
 
 ## 更新内容
 
-所有内容改 `assets/js/data.js`，保存后刷新页面即可。
+日常改内容走管理端：打开 `/admin/`，填一次 GitHub 令牌，之后在网页上增删改，点「保存并发布」即可，约 20 秒生效。
 
-新增项目：向 `SITE.projects` 追加对象，`id` 唯一，`specs` 为 `[名称, 值]` 数组，会被渲染成参数表。
+也可以直接改 `assets/data/content.json` 后发布。
 
-新增笔记：向 `SITE.notes` 追加对象。`body` 是字符串数组，逐行拼接；支持 `##` 小节、`-` 列表、`>` 引用和代码围栏，行内支持反引号、`**加粗**`、`[文字](链接)`。带 `draft: true` 的条目不渲染，可用来存格式模板。
+## 本地预览
 
-新增资料：文件放进 `assets/files/`，在 `SITE.files` 里加一条。本地文件用 `path: "assets/files/文件名"`，外部链接用 `url`。`kind` 取 `datasheet / manual / tool / image / other`。
+```bash
+python -m http.server 8903
+# 打开 http://127.0.0.1:8903/
+```
 
-## 部署
+资源使用绝对路径，不能直接双击 `index.html` 打开。
 
-推送到 `main` 分支后，GitHub Pages 自动构建发布，无需额外操作。
+## 发布
+
+```bash
+./publish.sh "改动说明"
+```
+
+脚本会刷新静态资源的版本号、同步 `404.html`、提交并推送。版本号形如 `style.css?v=202611061453`，用于避开浏览器强缓存。
 
 ## 说明
 
-站点不加载任何第三方脚本、字体或统计工具，页面内容不依赖外部请求。
+站点不加载任何第三方脚本、字体或统计工具，唯一的外部请求是与页面同源的 `content.json`。
