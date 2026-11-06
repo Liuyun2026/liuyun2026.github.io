@@ -41,13 +41,13 @@
 }
 .adm-status.on { color: var(--ok); border-color: rgba(95,217,139,.3); background: rgba(95,217,139,.1); }
 
-/* ---- 编辑器（manage.html）：接管整个视口 ---- */
+/* ---- 编辑器（manage.html）：接管整个视口 ----
+ * 遮罩只做轻度压暗，壁纸从 .bg 透出来；模糊交给各面板自身，不在全屏层上加 */
 .adm-editor {
   position: fixed; inset: 0; z-index: 40;
   display: flex; flex-direction: column;
   overflow: hidden;
-  background: rgba(7, 9, 16, .86);
-  -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+  background: linear-gradient(180deg, rgba(7, 9, 16, .62), rgba(7, 9, 16, .46) 40%, rgba(7, 9, 16, .55));
 }
 
 .adm-main {
