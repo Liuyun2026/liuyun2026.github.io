@@ -14,7 +14,7 @@
   "use strict";
 
   var view = document.getElementById("view");
-  var S = SITE;
+  var S = null;   /* 内容数据，启动时从 content.json 载入 */
   var introPending = true;   /* 首页开场动画是否还需要播放 */
   var lastPath = null;       /* 已渲染过的路径，避免同一地址重复渲染 */
   var introTimers = [];      /* 开场动画的全部定时器，点击打断时统一清除 */
@@ -611,6 +611,7 @@
   }
 
   function render() {
+    if (!S) return;
     var r = route();
     view.innerHTML = r.html;
     document.title = r.title || S.meta.name;
@@ -746,7 +747,22 @@
   }, true);
 
   window.addEventListener("resize", function () { movePill(false); });
+
   initSwipe();
-  initStatic();
-  render();
+
+  /* 内容集中在一个 JSON 文件里，管理端保存时只改这一个文件 */
+  fetch("/assets/data/content.json", { cache: "no-cache" })
+    .then(function (res) {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.json();
+    })
+    .then(function (data) {
+      S = data;
+      initStatic();
+      render();
+    })
+    .catch(function () {
+      view.innerHTML =
+        '<div class="wrap"><div class="empty">内容加载失败，请刷新页面重试</div></div>';
+    });
 })();

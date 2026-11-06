@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>内容管理 · 流雲的创客空间</title>
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%230B0F16'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='15' font-weight='bold' fill='%237FB2FF' text-anchor='middle'%3EM%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/assets/css/style.css">
+<style>
+  .adm-top {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; gap: 14px;
+    max-width: 1180px; margin: 0 auto;
+    padding: 18px 20px 14px;
+    background: linear-gradient(180deg, rgba(7,9,16,.92), rgba(7,9,16,.6) 70%, transparent);
+    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  }
+  .adm-top h1 { font-size: 16px; font-weight: 700; letter-spacing: .01em; }
+  .adm-back { font-size: 13px; color: var(--fg-3); }
+  .adm-back:hover { color: var(--accent); }
+  .adm-status {
+    margin-left: auto; font-size: 12px; padding: 5px 12px; border-radius: 999px;
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); color: var(--fg-3);
+  }
+  .adm-status.on { color: var(--ok); border-color: rgba(95,217,139,.3); background: rgba(95,217,139,.1); }
+
+  .adm-main {
+    max-width: 1180px; margin: 0 auto; padding: 0 20px 120px;
+    display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 16px; align-items: start;
+  }
+
+  .adm-panel {
+    border-radius: var(--r); padding: 16px;
+    background: linear-gradient(158deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
+    -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+    border: 1px solid var(--edge);
+    box-shadow: var(--sh);
+  }
+
+  .adm-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .adm-tabs button {
+    flex: 1; font-size: 12.5px; padding: 7px 0; border-radius: 999px; cursor: pointer;
+    color: var(--fg-2); background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.09); font-family: inherit; transition: .2s;
+  }
+  .adm-tabs button.on { color: #fff; background: rgba(26,35,51,.75); border-color: rgba(255,255,255,.24); font-weight: 600; }
+
+  .adm-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 12px; border-radius: 12px; cursor: pointer;
+    border: 1px solid transparent; transition: .18s;
+  }
+  .adm-item:hover { background: rgba(255,255,255,.05); }
+  .adm-item.on { background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.16); }
+  .adm-item .t { font-size: 13.5px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .adm-item .d { font-size: 11px; color: var(--fg-3); flex-shrink: 0; }
+
+  .adm-add {
+    width: 100%; margin-top: 12px; padding: 10px; border-radius: 999px; cursor: pointer;
+    font-size: 13px; font-family: inherit; color: var(--accent);
+    background: rgba(127,178,255,.1); border: 1px dashed rgba(127,178,255,.35);
+  }
+  .adm-add:hover { background: rgba(127,178,255,.16); }
+
+  .adm-field { margin-bottom: 14px; }
+  .adm-field > label { display: block; font-size: 12px; color: var(--fg-3); margin-bottom: 6px; letter-spacing: .03em; }
+  .adm-field input, .adm-field textarea, .adm-field select {
+    width: 100%; font-family: inherit; font-size: 13.5px; color: var(--fg);
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.11);
+    border-radius: 10px; padding: 10px 12px; outline: none; transition: .2s;
+  }
+  .adm-field textarea { min-height: 90px; line-height: 1.7; resize: vertical; }
+  .adm-field textarea[data-k="specs"],
+  .adm-field textarea[data-k="links"],
+  .adm-field textarea[data-k="body"] { min-height: 200px; }
+  .adm-field input:focus, .adm-field textarea:focus, .adm-field select:focus {
+    border-color: rgba(127,178,255,.5); background: rgba(255,255,255,.08);
+  }
+  .adm-field .hintline { font-size: 11.5px; color: var(--fg-3); margin-top: 5px; line-height: 1.6; }
+  .adm-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .adm-bar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 20px;
+    background: linear-gradient(0deg, rgba(7,9,16,.96), rgba(7,9,16,.7) 70%, transparent);
+    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  }
+  .adm-bar > div { max-width: 1180px; margin: 0 auto; width: 100%; display: flex; align-items: center; gap: 14px; }
+  .adm-save {
+    padding: 11px 26px; border-radius: 999px; font-size: 13.5px; font-weight: 600; cursor: pointer;
+    color: #06101F; background: linear-gradient(140deg, #9CC4FF, #4FE3C1); border: 0; font-family: inherit;
+  }
+  .adm-save:disabled { opacity: .5; cursor: default; }
+  .adm-msg { font-size: 12.5px; color: var(--fg-3); }
+  .adm-msg.ok { color: var(--ok); }
+  .adm-msg.err { color: #F2757A; }
+
+  .adm-token { display: flex; gap: 8px; margin-bottom: 14px; }
+  .adm-token input { flex: 1; }
+  .adm-token button {
+    padding: 0 16px; border-radius: 10px; cursor: pointer; font-size: 12.5px; font-family: inherit;
+    color: var(--fg); background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
+  }
+
+  .adm-empty { padding: 40px 10px; text-align: center; color: var(--fg-3); font-size: 13px; }
+
+  @media (max-width: 860px) {
+    .adm-main { grid-template-columns: minmax(0, 1fr); padding-bottom: 130px; }
+    .adm-row { grid-template-columns: 1fr; }
+    .adm-top { padding: 14px 16px 10px; }
+    .adm-main { padding-left: 16px; padding-right: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg" aria-hidden="true"></div>
+
+<header class="adm-top">
+  <a class="adm-back" href="/">← 返回站点</a>
+  <h1>内容管理</h1>
+  <span class="adm-status" id="status">未连接</span>
+</header>
+
+<main class="adm-main">
+  <aside class="adm-panel">
+    <div class="adm-token" id="tokenRow">
+      <input id="tokenInput" type="password" placeholder="粘贴 GitHub 令牌（只需一次）" autocomplete="off">
+      <button id="tokenSave">连接</button>
+    </div>
+    <div class="adm-tabs" id="tabs">
+      <button data-type="projects" class="on">项目</button>
+      <button data-type="notes">笔记</button>
+      <button data-type="files">资料</button>
+    </div>
+    <div id="list"></div>
+    <button class="adm-add" id="addBtn">+ 新建一条</button>
+  </aside>
+
+  <section class="adm-panel" id="edit"></section>
+</main>
+
+<div class="adm-bar">
+  <div>
+    <button class="adm-save" id="saveBtn">保存并发布</button>
+    <span class="adm-msg" id="msg"></span>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var OWNER = "Liuyun2026", REPO = "liuyun2026.github.io", BRANCH = "main";
+  var PATH = "assets/data/content.json";
+  var TOKEN_KEY = "gh_admin_token";
+
+  var content = null;
+  var curType = "projects";
+  var curIndex = -1;
+  var dirty = false;
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function msg(text, kind) {
+    var m = $("msg");
+    m.textContent = text || "";
+    m.className = "adm-msg" + (kind ? " " + kind : "");
+  }
+  function token() { return localStorage.getItem(TOKEN_KEY) || ""; }
+
+  /* ---------- 启动 ---------- */
+  function boot() {
+    if (token()) {
+      $("status").textContent = "已连接";
+      $("status").classList.add("on");
+      $("tokenRow").style.display = "none";
+    }
+    fetch("/assets/data/content.json", { cache: "no-cache" })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        content = d;
+        renderList();
+        if (content[curType] && content[curType].length) select(0);
+      })
+      .catch(function () { msg("内容加载失败", "err"); });
+  }
+
+  /* ---------- 列表 ---------- */
+  function items() { return content[curType] || []; }
+
+  function titleOf(item) {
+    return item.title || item.name || item.id || "（未命名）";
+  }
+  function subOf(item) {
+    if (curType === "files") return item.kind || "";
+    return item.category || item.date || "";
+  }
+
+  function renderList() {
+    var html = items().map(function (it, i) {
+      return '<div class="adm-item' + (i === curIndex ? " on" : "") + '" data-i="' + i + '">' +
+        '<span class="t">' + esc(titleOf(it)) + "</span>" +
+        '<span class="d">' + esc(subOf(it)) + "</span></div>";
+    }).join("");
+    $("list").innerHTML = html || '<div class="adm-empty">还没有内容</div>';
+  }
+
+  function select(i) {
+    curIndex = i;
+    renderList();
+    renderEdit();
+  }
+
+  /* ---------- 表单 ---------- */
+  function field(label, key, val, hint, type) {
+    var input;
+    if (type === "area") {
+      input = '<textarea data-k="' + key + '">' + esc(val || "") + "</textarea>";
+    } else if (type === "select") {
+      input = '<select data-k="' + key + '">' +
+        ["硬件", "软件", "文档"].map(function (o) {
+          return '<option' + (o === val ? " selected" : "") + ">" + o + "</option>";
+        }).join("") + "</select>";
+    } else {
+      input = '<input data-k="' + key + '" value="' + esc(val || "") + '">';
+    }
+    return '<div class="adm-field"><label>' + esc(label) + "</label>" + input +
+      (hint ? '<div class="hintline">' + hint + "</div>" : "") + "</div>";
+  }
+
+  function renderEdit() {
+    var it = items()[curIndex];
+    if (!it) {
+      $("edit").innerHTML = '<div class="adm-empty">从左侧选一条，或点「新建一条」</div>';
+      return;
+    }
+
+    var html = "";
+    if (curType === "projects") {
+      html += '<div class="adm-row">' + field("标题", "title", it.title) + field("标识 id（英文，唯一）", "id", it.id) + "</div>";
+      html += field("副标题", "subtitle", it.subtitle);
+      html += '<div class="adm-row">' + field("分类", "category", it.category, "", "select") + field("状态", "status", it.status) + "</div>";
+      html += field("摘要", "summary", it.summary, "", "area");
+      html += field("参数表", "specs", (it.specs || []).map(function (r) { return r[0] + " | " + r[1]; }).join("\n"),
+        "每行一条，格式：名称 | 值", "area");
+      html += field("标签", "tags", (it.tags || []).join("、"), "用顿号或逗号分隔");
+      html += field("链接", "links", (it.links || []).map(function (l) { return l.label + " | " + l.url; }).join("\n"),
+        "每行一条，格式：文字 | 链接", "area");
+    } else if (curType === "notes") {
+      html += field("标题", "title", it.title);
+      html += '<div class="adm-row">' + field("标识 id（英文，唯一）", "id", it.id) + field("日期", "date", it.date, "如 2026-11") + "</div>";
+      html += field("标签", "tags", (it.tags || []).join("、"), "用顿号或逗号分隔");
+      html += field("摘要", "summary", it.summary, "", "area");
+      html += field("正文", "body", (it.body || []).join("\n"),
+        "支持 ## 标题、- 列表、> 引用、``` 代码块，行内可用 `代码` 和 **加粗**", "area");
+    } else {
+      html += field("名称", "name", it.name);
+      html += '<div class="adm-row">' +
+        field("类型", "kind", it.kind, "datasheet / manual / tool / image / other") +
+        field("大小", "size", it.size, "可留空") + "</div>";
+      html += field("说明", "note", it.note);
+      html += field("链接", "url", it.url, "网盘或外部地址，填了以后条目可点击");
+    }
+
+    html += '<div class="adm-field" style="margin-top:22px">' +
+      '<button class="adm-add" id="delBtn" style="border-color:rgba(242,117,122,.4);color:#F2757A">删除这一条</button></div>';
+
+    $("edit").innerHTML = html;
+
+    Array.prototype.forEach.call($("edit").querySelectorAll("[data-k]"), function (el) {
+      el.addEventListener("input", function () { applyField(el); });
+      el.addEventListener("change", function () { applyField(el); });
+    });
+    $("delBtn").addEventListener("click", delCurrent);
+  }
+
+  function applyField(el) {
+    var it = items()[curIndex];
+    if (!it) return;
+    var k = el.getAttribute("data-k");
+    var v = el.value;
+
+    if (k === "specs") {
+      it.specs = v.split("\n").filter(function (l) { return l.trim(); }).map(function (l) {
+        var p = l.split("|");
+        return [p[0].trim(), (p[1] || "").trim()];
+      });
+    } else if (k === "links") {
+      it.links = v.split("\n").filter(function (l) { return l.trim(); }).map(function (l) {
+        var p = l.split("|");
+        return { label: p[0].trim(), url: (p[1] || "").trim() };
+      });
+    } else if (k === "tags") {
+      it.tags = v.split(/[、,，]/).map(function (t) { return t.trim(); }).filter(Boolean);
+    } else if (k === "body") {
+      it.body = v.split("\n");
+    } else {
+      it[k] = v;
+    }
+    dirty = true;
+    renderList();
+  }
+
+  /* ---------- 增删 ---------- */
+  function addNew() {
+    var blank;
+    if (curType === "projects") {
+      blank = { id: "new-" + Date.now(), title: "新项目", subtitle: "", category: "硬件", status: "进行中", year: "2026", summary: "", specs: [], tags: [], links: [] };
+    } else if (curType === "notes") {
+      blank = { id: "note-" + Date.now(), title: "新笔记", date: "", tags: [], summary: "", body: [""] };
+    } else {
+      blank = { name: "新资料", kind: "other", note: "", url: "", size: "" };
+    }
+    content[curType].push(blank);
+    dirty = true;
+    select(content[curType].length - 1);
+  }
+
+  function delCurrent() {
+    if (curIndex < 0) return;
+    if (!confirm("确定删除「" + titleOf(items()[curIndex]) + "」？")) return;
+    content[curType].splice(curIndex, 1);
+    dirty = true;
+    curIndex = Math.min(curIndex, items().length - 1);
+    renderList();
+    renderEdit();
+  }
+
+  /* ---------- 保存到 GitHub ---------- */
+  function b64(str) { return btoa(unescape(encodeURIComponent(str))); }
+
+  function save() {
+    var tk = token();
+    if (!tk) { msg("请先在上面填入令牌并连接", "err"); return; }
+    var btn = $("saveBtn");
+    btn.disabled = true;
+    msg("提交中…");
+
+    var api = "https://api.github.com/repos/" + OWNER + "/" + REPO + "/contents/" + PATH;
+    var head = { "Authorization": "Bearer " + tk, "Accept": "application/vnd.github+json" };
+
+    fetch(api + "?ref=" + BRANCH, { headers: head })
+      .then(function (r) {
+        if (r.status === 401) throw new Error("令牌无效或已过期");
+        if (!r.ok) throw new Error("读取文件失败 " + r.status);
+        return r.json();
+      })
+      .then(function (info) {
+        return fetch(api, {
+          method: "PUT",
+          headers: { "Authorization": "Bearer " + tk, "Accept": "application/vnd.github+json", "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: "内容更新：" + new Date().toISOString().slice(0, 16).replace("T", " "),
+            content: b64(JSON.stringify(content, null, 2)),
+            sha: info.sha,
+            branch: BRANCH
+          })
+        });
+      })
+      .then(function (r) {
+        if (!r.ok) return r.text().then(function (t) { throw new Error("提交失败 " + r.status); });
+        return r.json();
+      })
+      .then(function () {
+        dirty = false;
+        msg("已提交，约 20 秒后站点生效", "ok");
+      })
+      .catch(function (e) { msg(e.message, "err"); })
+      .then(function () { btn.disabled = false; });
+  }
+
+  /* ---------- 事件 ---------- */
+  $("tabs").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-type]");
+    if (!b) return;
+    Array.prototype.forEach.call(this.querySelectorAll("button"), function (x) { x.classList.remove("on"); });
+    b.classList.add("on");
+    curType = b.getAttribute("data-type");
+    curIndex = -1;
+    renderList();
+    renderEdit();
+    if (items().length) select(0);
+  });
+
+  $("list").addEventListener("click", function (e) {
+    var row = e.target.closest(".adm-item");
+    if (row) select(parseInt(row.getAttribute("data-i"), 10));
+  });
+
+  $("addBtn").addEventListener("click", addNew);
+  $("saveBtn").addEventListener("click", save);
+
+  $("tokenSave").addEventListener("click", function () {
+    var v = $("tokenInput").value.trim();
+    if (!v) return;
+    localStorage.setItem(TOKEN_KEY, v);
+    $("tokenInput").value = "";
+    $("tokenRow").style.display = "none";
+    $("status").textContent = "已连接";
+    $("status").classList.add("on");
+    msg("已保存令牌到本机浏览器", "ok");
+  });
+
+  window.addEventListener("beforeunload", function (e) {
+    if (dirty) { e.preventDefault(); e.returnValue = ""; }
+  });
+
+  boot();
+})();
+</script>
+</body>
+</html>
