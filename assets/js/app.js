@@ -240,9 +240,23 @@
 
         '<div class="wrap home-more">' +
           '<section class="block">' +
-            secHead("NOTES", "最近笔记", recent.length + " 篇") +
+            secHead("PROJECTS", "项目", S.projects.length + " 个") +
+            '<div class="cards">' +
+              (S.projects.length
+                ? S.projects.map(function (p, i) { return projectCard(p, i); }).join("")
+                : '<div class="empty">暂无内容</div>') +
+            '</div>' +
+          '</section>' +
+          '<section class="block">' +
+            secHead("NOTES", "笔记", S.notes.length + " 篇") +
             '<div class="nlist">' +
               (recent.length ? recent.map(noteRow).join("") : '<div class="empty">暂无内容</div>') +
+            '</div>' +
+          '</section>' +
+          '<section class="block">' +
+            secHead("FILES", "资料", S.files.length + " 项") +
+            '<div class="flist">' +
+              (S.files.length ? S.files.map(fileRow).join("") : '<div class="empty">暂无内容</div>') +
             '</div>' +
           '</section>' +
         '</div>'
@@ -567,6 +581,12 @@
     introTimers = [];
   }
 
+  /* 解锁页面：顶栏、页脚恢复显示 */
+  function introOff() {
+    document.body.classList.remove("intro-on");
+    document.documentElement.classList.remove("intro-on");
+  }
+
   /* 点击打断：立刻收尾到最终状态，不留半截动画 */
   function skipIntro() {
     if (!introRunning) return;
@@ -589,23 +609,29 @@
       layer.style.transform = "";
     }
 
-    document.body.classList.remove("intro-on");
-    document.documentElement.classList.remove("intro-on");
+    introOff();
     window.scrollTo(0, 0);
   }
 
   function playIntro() {
     var card = document.querySelector(".jelly");
     var layer = document.querySelector(".intro-layer");
-    if (!card || !layer) return;
-    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    /* 提前退出时必须解锁，否则顶栏/页脚会被首屏脚本藏死 */
+    var done = function () {
+      var bs = document.querySelector(".bubbles");
+      if (bs) bs.classList.add("play");
+    };
+    if (!card || !layer) { introOff(); done(); return; }
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      introOff(); done(); return;
+    }
 
     var hello = layer.querySelector(".intro-hello");
     var welcome = layer.querySelector(".intro-welcome");
-    if (!hello || !welcome) return;
+    if (!hello || !welcome) { introOff(); done(); return; }
 
     var r = card.getBoundingClientRect();
-    if (!r.width || !r.height) return;
+    if (!r.width || !r.height) { introOff(); done(); return; }
 
     var vw = window.innerWidth, vh = window.innerHeight;
     var s = Math.max(vw / r.width, vh / r.height) * 1.02;
@@ -679,9 +705,10 @@
 
     window.scrollTo(0, 0);
 
+    /* 同步启动：内容刚写入 DOM、尚未绘制，此时上加缩放变换不会闪出原位 */
     if (introPending && !location.hash.replace(/^#\/?/, "").split("/")[0]) {
       introPending = false;
-      window.setTimeout(playIntro, 40);
+      playIntro();
     }
 
     lastPath = currentPath();
@@ -824,6 +851,8 @@
       render();
     })
     .catch(function () {
+      /* 加载失败时解锁页面，顶栏与页脚正常显示错误提示 */
+      introOff();
       view.innerHTML =
         '<div class="wrap"><div class="empty">内容加载失败，请刷新页面重试</div></div>';
     });

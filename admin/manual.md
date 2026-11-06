@@ -12,10 +12,10 @@
 |---|---|---|
 | 访客端 | `index.html` + `assets/` | 展示项目、笔记、资料 |
 | 管理端欢迎页 | `admin/index.html` | 内容管理的入口，一点五层 |
-| 内容编辑器 | `admin/manage.html` | 在网页上增删改内容，保存即发布，二层 |
-| 壁纸管理 | `admin/theme.html` | 分别设置访客端 / 管理端壁纸，二层 |
+| 内容编辑器 | `admin/manage/` | 在网页上增删改内容，保存即发布，二层 |
+| 壁纸管理 | `admin/theme/` | 分别设置访客端 / 管理端壁纸，二层 |
 | 内容 | `content/` 目录 | 五个 JSON 文件，与站点代码分开存放 |
-| 手册 | `admin/manual.html` + `admin/manual.md` | 本页，由浏览器实时渲染 markdown |
+| 手册 | `admin/manual/` + `admin/manual.md` | 本页，由浏览器实时渲染 markdown |
 
 管理端分三层，每层有自己的网址：
 
@@ -23,7 +23,7 @@
 |---|---|---|
 | 一层 | `/` | 访客首页 |
 | 一点五层 | `/admin/` | 内容管理欢迎页，「← 返回站点」回访客首页 |
-| 二层 | `/admin/manage.html`、`/admin/theme.html` | 编辑器、壁纸管理，「← 返回管理端主页」回欢迎页 |
+| 二层 | `/admin/manage/`、`/admin/theme/` | 编辑器、壁纸管理，「← 返回管理端主页」回欢迎页 |
 
 内容区五个文件各管一类：
 
@@ -51,7 +51,7 @@
 
 ### 界面
 
-编辑器（`/admin/manage.html`）左上角「← 返回管理端主页」随时返回欢迎页。
+编辑器和壁纸页的顶栏与访客端一致：品牌、首页 / 项目 / 笔记 / 资料 / 内容 / 壁纸，右侧是连接状态、GitHub 与操作手册图标，当前页高亮。点品牌回管理端主页。
 
 左侧三个标签切换 **项目 / 笔记 / 资料**，点列表里的一条，右侧出现对应表单。
 
@@ -192,9 +192,9 @@ site/
 ├── 404.html                深层路径兜底，发布时由 index.html 复制
 ├── admin/
 │   ├── index.html          管理端欢迎页（一点五层）
-│   ├── manage.html         内容编辑器（二层）
-│   ├── theme.html          壁纸管理（二层）
-│   ├── manual.html         本手册的渲染页
+│   ├── manage/index.html    内容编辑器（二层）
+│   ├── theme/index.html     壁纸管理（二层）
+│   ├── manual/index.html    本手册的渲染页
 │   └── manual.md           手册正文，改这个文件即可
 ├── assets/                 站点自身的代码与资源
 │   ├── css/style.css

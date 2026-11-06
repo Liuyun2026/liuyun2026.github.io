@@ -41,6 +41,26 @@
 }
 .adm-status.on { color: var(--ok); border-color: rgba(95,217,139,.3); background: rgba(95,217,139,.1); }
 
+/* 二层页面顶栏：复用访客端 .nav 结构与外观，只覆盖固定容器内的定位 */
+.adm-nav {
+  position: relative;
+  top: auto;
+  flex-shrink: 0;
+  padding: 14px 0 0;
+  z-index: 60;
+}
+/* 当前项高亮：二层页面不跑滑块脚本，直接用底色标出 */
+.adm-nav .nav-links a.on {
+  color: #FFFFFF;
+  font-weight: 600;
+  background: rgba(26, 35, 51, .55);
+  border: 1px solid rgba(255, 255, 255, .22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3);
+}
+.adm-nav .nav-status { font-size: 12px; }
+/* 令牌连接后状态文字转绿 */
+#status.on { color: var(--ok); }
+
 /* ---- 编辑器（manage.html）：接管整个视口 ----
  * 遮罩只做轻度压暗，壁纸从 .bg 透出来；模糊交给各面板自身，不在全屏层上加 */
 .adm-editor {
