@@ -1120,8 +1120,8 @@ main .block:nth-of-type(3) { animation-delay: .14s; }
   .jelly-tag { margin-bottom: 20px; }
   .pill { font-size: 11.5px; padding: 7px 13px; }
 
-  .bubbles { gap: 10px; }
-  .bubble { width: 74px; height: 74px; gap: 3px; }
+  .bubbles { gap: 14px; }
+  .bubble { width: 88px; height: 88px; gap: 4px; }
   .bubble-t { font-size: 13px; }
   .bubble-e { display: none; }
 

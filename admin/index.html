@@ -9,10 +9,17 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%230B0F16'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='15' font-weight='bold' fill='%237FB2FF' text-anchor='middle'%3EM%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="/assets/css/style.css">
 <style>
-  body {
+  /* 欢迎页用站点原本的流式布局，编辑器接管整个视口 */
+  .adm-welcome { position: relative; z-index: 1; }
+  .adm-editor {
+    position: fixed; inset: 0; z-index: 40;
     display: flex; flex-direction: column;
-    height: 100vh; overflow: hidden;
+    overflow: hidden;
+    background: rgba(7, 9, 16, .86);
+    -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
   }
+  .adm-editor[hidden] { display: none; }
+
   .adm-top {
     flex-shrink: 0;
     position: relative; z-index: 20;
@@ -223,6 +230,45 @@
 
 <div class="bg" aria-hidden="true"></div>
 
+<div class="adm-welcome" id="welcome">
+  <div class="home">
+    <section class="hero-jelly">
+      <div class="jelly">
+        <span class="jelly-tag">你好</span>
+        <h1>欢迎来到<span class="hl">流雲</span>的创客空间</h1>
+        <div class="jelly-meta">
+          <span class="pill"><i class="dot"></i>内容管理</span>
+          <a class="pill pill--link" href="/">← 返回站点</a>
+        </div>
+      </div>
+    </section>
+
+    <nav class="bubbles">
+      <a class="bubble" href="/projects">
+        <span class="bubble-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 20.5 7v10L12 21.2 3.5 17V7z"/><path d="M3.5 7 12 11.4 20.5 7M12 11.4V21.2"/></svg></span>
+        <span class="bubble-t">项目</span>
+        <span class="bubble-e">Projects</span>
+      </a>
+      <a class="bubble" href="/notes">
+        <span class="bubble-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h9L19 7.5v13H6z"/><path d="M14.5 3.5V8H19"/><path d="M9 12h7M9 15.5h7M9 8.5h2.5"/></svg></span>
+        <span class="bubble-t">笔记</span>
+        <span class="bubble-e">Notes</span>
+      </a>
+      <a class="bubble" href="/files">
+        <span class="bubble-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg></span>
+        <span class="bubble-t">资料</span>
+        <span class="bubble-e">Files</span>
+      </a>
+      <a class="bubble" href="#" id="goAdmin">
+        <span class="bubble-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9M18 7h2M4 17h3M12 17h8"/><circle cx="15.5" cy="7" r="2.2"/><circle cx="9.5" cy="17" r="2.2"/></svg></span>
+        <span class="bubble-t">管理</span>
+        <span class="bubble-e">Admin</span>
+      </a>
+    </nav>
+  </div>
+</div>
+
+<div class="adm-editor" id="editor" hidden>
 <header class="adm-top">
   <a class="adm-back" href="/">← 返回站点</a>
   <h1>内容管理</h1>
@@ -265,6 +311,7 @@
     </div>
   </aside>
 </main>
+</div>
 
 <script>
 (function () {
@@ -847,6 +894,13 @@
   $("list").addEventListener("click", function (e) {
     var row = e.target.closest(".adm-item");
     if (row) select(parseInt(row.getAttribute("data-i"), 10));
+  });
+
+  $("goAdmin").addEventListener("click", function (e) {
+    e.preventDefault();
+    $("welcome").style.display = "none";
+    $("editor").hidden = false;
+    document.body.style.overflow = "hidden";
   });
 
   $("addBtn").addEventListener("click", addNew);
