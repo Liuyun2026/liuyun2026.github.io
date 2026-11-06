@@ -147,17 +147,14 @@
   function viewHome() {
     var recent = S.notes.filter(function (n) { return !n.draft; }).slice(0, 3);
 
-    /* 气泡按实际有内容的板块生成：没有笔记就不显示那个气泡 */
     var bubbles = [
       { href: "/projects", t: "项目", e: "Projects",
-        ico: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 20.5 7v10L12 21.2 3.5 17V7z"/><path d="M3.5 7 12 11.4 20.5 7M12 11.4V21.2"/></svg>' }
+        ico: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 20.5 7v10L12 21.2 3.5 17V7z"/><path d="M3.5 7 12 11.4 20.5 7M12 11.4V21.2"/></svg>' },
+      { href: "/notes", t: "笔记", e: "Notes",
+        ico: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h9L19 7.5v13H6z"/><path d="M14.5 3.5V8H19"/><path d="M9 12h7M9 15.5h7M9 8.5h2.5"/></svg>' },
+      { href: "/files", t: "资料", e: "Files",
+        ico: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg>' }
     ];
-    if (S.notes && S.notes.length) {
-      bubbles.push({ href: "/notes", t: "笔记", e: "Notes",
-        ico: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h9L19 7.5v13H6z"/><path d="M14.5 3.5V8H19"/><path d="M9 12h7M9 15.5h7M9 8.5h2.5"/></svg>' });
-    }
-    bubbles.push({ href: "/files", t: "资料", e: "Files",
-      ico: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg>' });
 
     return {
       title: S.meta.name + "的创客空间",
@@ -190,12 +187,12 @@
         '</div>' +
 
         '<div class="wrap home-more">' +
-          (recent.length
-            ? '<section class="block">' +
-                secHead("NOTES", "最近笔记", recent.length + " 篇") +
-                '<div class="nlist">' + recent.map(noteRow).join("") + '</div>' +
-              '</section>'
-            : "") +
+          '<section class="block">' +
+            secHead("NOTES", "最近笔记", recent.length + " 篇") +
+            '<div class="nlist">' +
+              (recent.length ? recent.map(noteRow).join("") : '<div class="empty">还没有笔记</div>') +
+            '</div>' +
+          '</section>' +
         '</div>'
     };
   }
@@ -620,10 +617,7 @@
       : /^(note|notes)$/.test(seg) ? "notes"
       : seg;
     [].forEach.call(document.querySelectorAll("#navLinks a"), function (a) {
-      var nav = a.getAttribute("data-nav");
-      /* 没有笔记时，导航里的「笔记」一并隐藏，避免出现空页面入口 */
-      if (nav === "notes") a.style.display = (S.notes && S.notes.length) ? "" : "none";
-      a.classList.toggle("on", nav === key);
+      a.classList.toggle("on", a.getAttribute("data-nav") === key);
     });
 
     window.scrollTo(0, 0);
@@ -655,12 +649,8 @@
    * 左滑进入下一项（新页从右侧进），右滑返回上一项
    * 详情页（#/note/xxx、#/project/xxx）不参与滑动，避免和返回逻辑冲突
    */
-  /* 页序动态生成：某个板块没有内容时，滑动与切换会跳过它 */
   function pageOrder() {
-    var order = ["", "projects"];
-    if (S && S.notes && S.notes.length) order.push("notes");
-    order.push("files");
-    return order;
+    return ["", "projects", "notes", "files"];
   }
   var slideClass = "";
 
