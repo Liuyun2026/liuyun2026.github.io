@@ -255,6 +255,10 @@
 }
 .theme-foot .adm-msg { margin: 0 0 0 0; text-align: left; flex: 1; }
 
+/* 管理端气泡有五个，补上第 4、5 个的弹起延迟，保持依次弹起的节奏 */
+.bubbles.play .bubble:nth-child(4) { animation-delay: .41s, 1.5s; }
+.bubbles.play .bubble:nth-child(5) { animation-delay: .52s, 1.6s; }
+
 /* ---- 响应式 ---- */
 @media (max-width: 1280px) {
   body { display: block; height: auto; overflow: auto; }
