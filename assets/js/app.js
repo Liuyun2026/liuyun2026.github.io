@@ -240,23 +240,9 @@
 
         '<div class="wrap home-more">' +
           '<section class="block">' +
-            secHead("PROJECTS", "项目", S.projects.length + " 个") +
-            '<div class="cards">' +
-              (S.projects.length
-                ? S.projects.map(function (p, i) { return projectCard(p, i); }).join("")
-                : '<div class="empty">暂无内容</div>') +
-            '</div>' +
-          '</section>' +
-          '<section class="block">' +
-            secHead("NOTES", "笔记", S.notes.length + " 篇") +
+            secHead("NOTES", "最近笔记", recent.length + " 篇") +
             '<div class="nlist">' +
               (recent.length ? recent.map(noteRow).join("") : '<div class="empty">暂无内容</div>') +
-            '</div>' +
-          '</section>' +
-          '<section class="block">' +
-            secHead("FILES", "资料", S.files.length + " 项") +
-            '<div class="flist">' +
-              (S.files.length ? S.files.map(fileRow).join("") : '<div class="empty">暂无内容</div>') +
             '</div>' +
           '</section>' +
         '</div>'
