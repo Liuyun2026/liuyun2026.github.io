@@ -444,12 +444,12 @@
       html += field("副标题", "subtitle", it.subtitle);
       html += '<div class="adm-row">' + field("分类", "category", it.category, "", "select") + field("状态", "status", it.status) + "</div>";
       html += field("摘要", "summary", it.summary, "显示在列表页和详情页开头", "area");
+      html += field("标签", "tags", (it.tags || []).join("、"), "用顿号或逗号分隔");
       html += field("参数表", "specs", (it.specs || []).map(function (r) { return r[0] + " | " + r[1]; }).join("\n"),
         "每行一条，格式：名称 | 值", "area");
-      html += field("标签", "tags", (it.tags || []).join("、"), "用顿号或逗号分隔");
-      html += field("链接", "links", (it.links || []).map(function (l) { return l.label + " | " + l.url; }).join("\n"),
-        "每行一条，格式：文字 | 链接", "area");
       html += bodyField(it, "支持 ## 标题、- 列表、> 引用、表格、图片、链接，以及反引号代码");
+      html += field("链接", "links", (it.links || []).map(function (l) { return l.label + " | " + l.url; }).join("\n"),
+        "每行一条，格式：文字 | 链接，显示在正文下方", "area");
       html += attachPanel(it);
     } else if (curType === "notes") {
       html += field("标题", "title", it.title);

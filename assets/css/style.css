@@ -732,7 +732,7 @@ section.block { padding: 26px 0; }
   letter-spacing: .2em;
   color: var(--fg-3);
   text-transform: uppercase;
-  padding: 0 0 12px;
+  padding: 0 0 12px 18px;
 }
 .spectable th, .spectable td { padding: 13px 20px; text-align: left; vertical-align: top; }
 .spectable tr + tr th, .spectable tr + tr td { border-top: 1px solid rgba(255, 255, 255, .06); }

@@ -311,10 +311,10 @@
           "<div>" +
             '<p class="lead">' + esc(p.summary) + "</p>" +
             tags(p.tags) +
-            (links ? '<div class="link-row">' + links + "</div>" : "") +
           "</div>" +
           specTable(p.specs) +
           (p.body && p.body.length ? '<article class="prose detail-prose">' + md(p.body) + "</article>" : "") +
+          (links ? '<div class="link-row">' + links + "</div>" : "") +
           attachments(p.attachments) +
         "</div>" +
       "</div>"
