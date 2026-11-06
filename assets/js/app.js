@@ -190,7 +190,7 @@
           '<section class="block">' +
             secHead("NOTES", "最近笔记", recent.length + " 篇") +
             '<div class="nlist">' +
-              (recent.length ? recent.map(noteRow).join("") : '<div class="empty">还没有笔记</div>') +
+              (recent.length ? recent.map(noteRow).join("") : '<div class="empty">暂无内容</div>') +
             '</div>' +
           '</section>' +
         '</div>'
@@ -210,7 +210,9 @@
             }).join("") +
           "</div>" +
           '<div class="cards" id="plist">' +
-            S.projects.map(function (p, i) { return projectCard(p, i); }).join("") +
+            (S.projects.length
+              ? S.projects.map(function (p, i) { return projectCard(p, i); }).join("")
+              : '<div class="empty">暂无内容</div>') +
           "</div>" +
         "</section>" +
       "</div>",
@@ -226,7 +228,7 @@
             .map(function (p, i) { return { p: p, i: i }; })
             .filter(function (o) { return !cat || o.p.category === cat; })
             .map(function (o) { return projectCard(o.p, o.i); })
-            .join("") || '<div class="empty">该分类下暂无项目</div>';
+            .join("") || '<div class="empty">没有匹配的内容</div>';
         });
       }
     };
@@ -286,7 +288,7 @@
             "</label>" +
           "</div>" +
           '<div class="nlist" id="nlist">' +
-            (items.length ? items.map(noteRow).join("") : '<div class="empty">还没有笔记</div>') +
+            (items.length ? items.map(noteRow).join("") : '<div class="empty">暂无内容</div>') +
           "</div>" +
         "</section>" +
       "</div>",
@@ -300,7 +302,7 @@
             return (n.title + " " + n.summary + " " + (n.tags || []).join(" ") + " " + (n.body || []).join(" "))
               .toLowerCase().indexOf(k) >= 0;
           });
-          list.innerHTML = hit.length ? hit.map(noteRow).join("") : '<div class="empty">没有匹配的笔记</div>';
+          list.innerHTML = hit.length ? hit.map(noteRow).join("") : '<div class="empty">没有匹配的内容</div>';
         });
       }
     };
@@ -361,7 +363,7 @@
             "</label>" +
           "</div>" +
           '<div class="flist" id="flist">' +
-            (all.length ? all.map(fileRow).join("") : '<div class="empty">还没有资料</div>') +
+            (all.length ? all.map(fileRow).join("") : '<div class="empty">暂无内容</div>') +
           "</div>" +
           '<div class="hint">' +
             "资料条目在管理端添加，填名称、类型与网盘链接即可。" +
@@ -382,7 +384,7 @@
             if (!k) return true;
             return (f.name + " " + (f.note || "")).toLowerCase().indexOf(k) >= 0;
           });
-          list.innerHTML = hit.length ? hit.map(fileRow).join("") : '<div class="empty">没有匹配的资料</div>';
+          list.innerHTML = hit.length ? hit.map(fileRow).join("") : '<div class="empty">没有匹配的内容</div>';
         }
 
         bar.addEventListener("click", function (e) {
