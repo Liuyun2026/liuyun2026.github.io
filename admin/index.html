@@ -26,9 +26,20 @@
   }
   .adm-status.on { color: var(--ok); border-color: rgba(95,217,139,.3); background: rgba(95,217,139,.1); }
 
+  .adm-toolbar {
+    position: relative; z-index: 1;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    padding: 0 24px 14px;
+  }
+  .adm-items {
+    display: flex; gap: 8px; overflow-x: auto; flex: 1; min-width: 0;
+    padding-bottom: 2px;
+  }
+  .adm-items::-webkit-scrollbar { height: 4px; }
+
   .adm-main {
-    width: 100%; padding: 0 24px 130px;
-    display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 16px; align-items: start;
+    max-width: 900px; margin: 0 auto;
+    padding: 0 24px 60px;
   }
 
   .adm-panel {
@@ -48,18 +59,19 @@
   .adm-tabs button.on { color: #fff; background: rgba(26,35,51,.75); border-color: rgba(255,255,255,.24); font-weight: 600; }
 
   .adm-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 11px 12px; border-radius: 12px; cursor: pointer;
-    border: 1px solid transparent; transition: .18s;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 7px 14px; border-radius: 999px; cursor: pointer;
+    border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.04);
+    white-space: nowrap; transition: .18s; flex-shrink: 0;
   }
   .adm-item:hover { background: rgba(255,255,255,.05); }
   .adm-item.on { background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.16); }
-  .adm-item .t { font-size: 13.5px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .adm-item .t { font-size: 13px; }
   .adm-item .d { font-size: 11px; color: var(--fg-3); flex-shrink: 0; }
 
   .adm-add {
-    width: 100%; margin-top: 12px; padding: 10px; border-radius: 999px; cursor: pointer;
-    font-size: 13px; font-family: inherit; color: var(--accent);
+    padding: 8px 16px; border-radius: 999px; cursor: pointer; flex-shrink: 0;
+    font-size: 12.5px; font-family: inherit; color: var(--accent);
     background: rgba(127,178,255,.1); border: 1px dashed rgba(127,178,255,.35);
   }
   .adm-add:hover { background: rgba(127,178,255,.16); }
@@ -81,19 +93,20 @@
   .adm-field .hintline { font-size: 11.5px; color: var(--fg-3); margin-top: 5px; line-height: 1.6; }
   .adm-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-  .adm-bar {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  .adm-actions {
     display: flex; align-items: center; gap: 14px;
-    padding: 14px 20px;
-    background: linear-gradient(0deg, rgba(7,9,16,.96), rgba(7,9,16,.7) 70%, transparent);
-    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    margin-top: 28px; padding-top: 22px;
+    border-top: 1px solid rgba(255,255,255,.08);
   }
-  .adm-bar > div {
-    width: 100%;
-    display: flex; align-items: center; gap: 14px;
+  .adm-actions .adm-msg { margin-left: 0; }
+  .adm-del {
+    padding: 9px 16px; border-radius: 999px; font-size: 12.5px; cursor: pointer;
+    color: #F2757A; background: rgba(242,117,122,.08);
+    border: 1px solid rgba(242,117,122,.3); font-family: inherit; transition: .2s;
   }
+  .adm-del:hover { background: rgba(242,117,122,.16); }
   .adm-save {
-    padding: 11px 26px; border-radius: 999px; font-size: 13.5px; font-weight: 600; cursor: pointer;
+    margin-left: auto; padding: 11px 26px; border-radius: 999px; font-size: 13.5px; font-weight: 600; cursor: pointer;
     color: #06101F; background: linear-gradient(140deg, #9CC4FF, #4FE3C1); border: 0; font-family: inherit;
   }
   .adm-save:disabled { opacity: .5; cursor: default; }
@@ -146,15 +159,14 @@
   .adm-empty { padding: 40px 10px; text-align: center; color: var(--fg-3); font-size: 13px; }
 
   @media (max-width: 860px) {
-    .adm-main { grid-template-columns: minmax(0, 1fr); padding-bottom: 140px; }
+    .adm-main { padding-bottom: 40px; }
     .adm-row { grid-template-columns: 1fr; }
     .adm-top { padding: 14px 14px 10px; }
     .adm-main { padding-left: 14px; padding-right: 14px; }
     .adm-panel { padding: 14px; }
-    .adm-bar { padding: 12px 14px; }
-    .adm-bar > div { flex-wrap: wrap; gap: 10px; }
-    .adm-save { margin-left: auto; }
+    .adm-toolbar { padding: 0 14px 10px; gap: 8px; }
     .adm-manual { padding: 8px 14px; font-size: 12px; }
+    .adm-actions { flex-wrap: wrap; gap: 10px; }
   }
 </style>
 </head>
@@ -168,31 +180,23 @@
   <span class="adm-status" id="status">未连接</span>
 </header>
 
-<main class="adm-main">
-  <aside class="adm-panel">
-    <div class="adm-token" id="tokenRow">
-      <input id="tokenInput" type="password" placeholder="粘贴令牌" autocomplete="off">
-      <button id="tokenSave">连接</button>
-    </div>
-    <div class="adm-tabs" id="tabs">
-      <button data-type="projects" class="on">项目</button>
-      <button data-type="notes">笔记</button>
-      <button data-type="files">资料</button>
-    </div>
-    <div id="list"></div>
-    <button class="adm-add" id="addBtn">+ 新建一条</button>
-  </aside>
+<div class="adm-toolbar">
+  <div class="adm-token" id="tokenRow">
+    <input id="tokenInput" type="password" placeholder="粘贴令牌" autocomplete="off">
+    <button id="tokenSave">连接</button>
+  </div>
+  <div class="adm-tabs" id="tabs">
+    <button data-type="projects" class="on">项目</button>
+    <button data-type="notes">笔记</button>
+    <button data-type="files">资料</button>
+  </div>
+  <div class="adm-items" id="list"></div>
+  <button class="adm-add" id="addBtn">+ 新建</button>
+</div>
 
+<main class="adm-main">
   <section class="adm-panel" id="edit"></section>
 </main>
-
-<div class="adm-bar">
-  <div>
-    <a class="adm-manual" href="/admin/manual.html" target="_blank" rel="noopener">操作手册 ↗</a>
-    <span class="adm-msg" id="msg"></span>
-    <button class="adm-save" id="saveBtn">保存并发布</button>
-  </div>
-</div>
 
 <script>
 (function () {
@@ -216,6 +220,7 @@
   }
   function msg(text, kind) {
     var m = $("msg");
+    if (!m) return;
     m.textContent = text || "";
     m.className = "adm-msg" + (kind ? " " + kind : "");
   }
@@ -467,8 +472,12 @@
       html += field("链接", "url", it.url, "网盘或外部地址，填了以后条目可点击");
     }
 
-    html += '<div class="adm-field" style="margin-top:22px">' +
-      '<button class="adm-add" id="delBtn" style="border-color:rgba(242,117,122,.4);color:#F2757A">删除这一条</button></div>';
+    html += '<div class="adm-actions">' +
+      '<button class="adm-del" id="delBtn">删除这一条</button>' +
+      '<a class="adm-manual" href="/admin/manual.html" target="_blank" rel="noopener">操作手册 ↗</a>' +
+      '<span class="adm-msg" id="msg"></span>' +
+      '<button class="adm-save" id="saveBtn">保存并发布</button>' +
+      '</div>';
 
     $("edit").innerHTML = html;
 
@@ -519,6 +528,8 @@
     }
 
     $("delBtn").addEventListener("click", delCurrent);
+    var sb = $("saveBtn");
+    if (sb) sb.addEventListener("click", save);
   }
 
   function applyField(el) {
@@ -662,7 +673,6 @@
   });
 
   $("addBtn").addEventListener("click", addNew);
-  $("saveBtn").addEventListener("click", save);
 
   $("tokenSave").addEventListener("click", function () {
     var v = $("tokenInput").value.trim();
