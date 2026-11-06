@@ -165,7 +165,7 @@
     ];
 
     return {
-      title: S.meta.name + " · " + S.meta.tagline.split("·")[0].trim(),
+      title: S.meta.name + "的创客空间",
       html:
         '<div class="home">' +
           '<section class="hero-jelly">' +
@@ -205,7 +205,7 @@
 
   function viewProjects() {
     return {
-      title: "项目 · " + S.meta.name,
+      title: S.meta.name + "的项目",
       html: '<div class="wrap">' +
         '<section class="block">' +
           secHead("PROJECTS", "项目", S.projects.length + " 个") +
@@ -249,7 +249,7 @@
     }).join("");
 
     return {
-      title: p.title + " · " + S.meta.name,
+      title: p.title,
       html: '<div class="wrap">' +
         '<div class="detail-head">' +
           '<a class="back" href="/projects">← 项目</a>' +
@@ -281,7 +281,7 @@
   function viewNotes() {
     var items = S.notes.filter(function (n) { return !n.draft; });
     return {
-      title: "笔记 · " + S.meta.name,
+      title: S.meta.name + "的笔记",
       html: '<div class="wrap">' +
         '<section class="block">' +
           secHead("NOTES", "技术笔记", items.length + " 篇") +
@@ -316,7 +316,7 @@
     if (!n) return viewNotFound();
 
     return {
-      title: n.title + " · " + S.meta.name,
+      title: n.title,
       html: '<div class="wrap">' +
         '<div class="detail-head">' +
           '<a class="back" href="/notes">← 笔记</a>' +
@@ -350,7 +350,7 @@
   function viewFiles() {
     var all = S.files || [];
     return {
-      title: "资料 · " + S.meta.name,
+      title: S.meta.name + "的资料",
       html: '<div class="wrap">' +
         '<section class="block">' +
           secHead("FILES", "资料", all.length + " 项") +
@@ -405,7 +405,7 @@
 
   function viewNotFound() {
     return {
-      title: "未找到 · " + S.meta.name,
+      title: S.meta.name + "的创客空间",
       html: '<div class="wrap"><section class="block" style="padding-top:80px">' +
         '<div class="empty">404 · 这一页不存在<br><br>' +
         '<a href="/">← 回首页</a></div></section></div>'
