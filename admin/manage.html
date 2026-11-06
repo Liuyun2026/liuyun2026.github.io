@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>内容管理 · 流雲的创客空间</title>
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%230B0F16'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='15' font-weight='bold' fill='%237FB2FF' text-anchor='middle'%3EM%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/assets/css/style.css">
+<link rel="stylesheet" href="/assets/css/admin.css">
+</head>
+<body>
+
+<div class="bg" aria-hidden="true"></div>
+
+<div class="adm-editor" id="editor">
+<header class="adm-top">
+  <a class="adm-back" href="/admin/">← 内容管理</a>
+  <h1>内容管理</h1>
+  <span class="adm-status" id="status">未连接</span>
+</header>
+
+<main class="adm-main">
+  <aside class="adm-panel adm-left">
+    <div class="adm-col-scroll">
+      <div class="adm-token" id="tokenRow">
+        <input id="tokenInput" type="password" placeholder="粘贴令牌" autocomplete="off">
+        <button id="tokenSave">连接</button>
+      </div>
+      <div class="adm-tabs" id="tabs">
+        <button data-type="projects" class="on">项目</button>
+        <button data-type="notes">笔记</button>
+        <button data-type="files">资料</button>
+      </div>
+      <div id="list"></div>
+      <button class="adm-add" id="addBtn">+ 新建一条</button>
+    </div>
+    <a class="adm-manual" href="/admin/manual.html" target="_blank" rel="noopener">操作手册 ↗</a>
+  </aside>
+
+  <section class="adm-panel" id="edit"></section>
+
+  <aside class="adm-panel adm-preview">
+    <div class="adm-col-scroll">
+      <div class="adm-preview-head">预览 · 正文</div>
+      <div class="prose adm-preview-body" id="previewBody">
+        <div class="hintline">选中一条内容后，这里显示正文效果</div>
+      </div>
+    </div>
+    <div class="adm-preview-foot">
+      <div class="adm-msg" id="msg"></div>
+      <div class="adm-foot-btns">
+        <button class="adm-del" id="delBtn">删除这一条</button>
+        <button class="adm-save" id="saveBtn">保存并发布</button>
+      </div>
+    </div>
+  </aside>
+</main>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var OWNER = "Liuyun2026", REPO = "liuyun2026.github.io", BRANCH = "main";
+  /* 内容按类别拆在 content/ 目录，与站点代码分开 */
+  var PARTS = ["meta", "projects", "notes", "files"];
+  var TOKEN_KEY = "gh_admin_token";
+
+  var content = null;
+  var curType = "projects";
+  var curIndex = -1;
+  var dirty = false;
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function msg(text, kind) {
+    var m = $("msg");
+    if (!m) return;
+    m.textContent = text || "";
+    m.className = "adm-msg" + (kind ? " " + kind : "");
+  }
+  function token() { return localStorage.getItem(TOKEN_KEY) || ""; }
+
+  /* ---------- 启动 ---------- */
+  function boot() {
+    if (token()) {
+      $("status").textContent = "已连接";
+      $("status").classList.add("on");
+      $("tokenRow").style.display = "none";
+    }
+    Promise.all(PARTS.map(function (k) {
+      return fetch("/content/" + k + ".json", { cache: "no-cache" }).then(function (r) {
+        if (!r.ok) throw new Error(k);
+        return r.json();
+      });
+    }))
+      .then(function (arr) {
+        content = { meta: arr[0], projects: arr[1], notes: arr[2], files: arr[3] };
+        renderList();
+        if (content[curType] && content[curType].length) select(0);
+      })
+      .catch(function () { msg("内容加载失败", "err"); });
+  }
+
+  /* ---------- 列表 ---------- */
+  function items() { return content[curType] || []; }
+
+  function titleOf(item) {
+    return item.title || item.name || item.id || "（未命名）";
+  }
+  function subOf(item) {
+    if (curType === "files") return item.kind || "";
+    return item.category || item.date || "";
+  }
+
+  function renderList() {
+    var html = items().map(function (it, i) {
+      return '<div class="adm-item' + (i === curIndex ? " on" : "") + '" data-i="' + i + '">' +
+        '<span class="t">' + esc(titleOf(it)) + "</span>" +
+        '<span class="d">' + esc(subOf(it)) + "</span></div>";
+    }).join("");
+    $("list").innerHTML = html || '<div class="adm-empty">还没有内容</div>';
+  }
+
+  function select(i) {
+    curIndex = i;
+    renderList();
+    renderEdit();
+  }
+
+  /* ---------- 表单 ---------- */
+  function field(label, key, val, hint, type) {
+    var input;
+    if (type === "area") {
+      input = '<textarea data-k="' + key + '">' + esc(val || "") + "</textarea>";
+    } else if (type === "select") {
+      input = '<select data-k="' + key + '">' +
+        ["硬件", "软件", "文档"].map(function (o) {
+          return '<option' + (o === val ? " selected" : "") + ">" + o + "</option>";
+        }).join("") + "</select>";
+    } else {
+      input = '<input data-k="' + key + '" value="' + esc(val || "") + '">';
+    }
+    return '<div class="adm-field"><label>' + esc(label) + "</label>" + input +
+      (hint ? '<div class="hintline">' + hint + "</div>" : "") + "</div>";
+  }
+
+  /* ---------- 正文编辑器 ---------- */
+  function bodyField(it, hint) {
+    return '<div class="adm-field"><label>正文</label>' +
+      '<div class="adm-tools" data-tools>' +
+        '<button data-ins="h2">标题</button>' +
+        '<button data-ins="ul">列表</button>' +
+        '<button data-ins="quote">引用</button>' +
+        '<button data-ins="code">代码块</button>' +
+        '<button data-ins="table">表格</button>' +
+        '<button data-ins="link">链接</button>' +
+        '<button data-ins="image">图片</button>' +
+      '</div>' +
+      '<textarea data-k="body">' + esc((it.body || []).join("\n")) + '</textarea>' +
+      (hint ? '<div class="hintline">' + hint + '</div>' : "") +
+    '</div>';
+  }
+
+  function insertAt(ta, text) {
+    var a = ta.selectionStart, b = ta.selectionEnd, v = ta.value;
+    ta.value = v.slice(0, a) + text + v.slice(b);
+    var pos = a + text.length;
+    ta.selectionStart = ta.selectionEnd = pos;
+    ta.dispatchEvent(new Event("input", { bubbles: true }));
+    ta.focus();
+  }
+
+  /* ---------- 预览渲染 ----------
+   * 支持标题、列表、引用、代码块、表格、图片、链接，够预览正文用
+   */
+  function inlineMd(t) {
+    var codes = [];
+    var s = String(t).replace(/`([^`]+)`/g, function (_, c) {
+      codes.push(c);
+      return "\u0001" + (codes.length - 1) + "\u0001";
+    });
+    s = esc(s)
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, '<img src="$2" alt="$1" loading="lazy">')
+      .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    return s.replace(/\u0001(\d+)\u0001/g, function (_, n) {
+      return "<code>" + esc(codes[+n]) + "</code>";
+    });
+  }
+
+  function tableCells(line) {
+    var str = String(line).trim().replace(/^\|/, "").replace(/\|$/, "");
+    var cells = [], cur = "";
+    for (var i = 0; i < str.length; i++) {
+      var ch = str[i];
+      if (ch === "\\" && str[i + 1] === "|") { cur += "|"; i++; continue; }
+      if (ch === "|") { cells.push(cur.trim()); cur = ""; continue; }
+      cur += ch;
+    }
+    cells.push(cur.trim());
+    return cells;
+  }
+
+  function renderMd(text) {
+    var lines = String(text).replace(/\r\n/g, "\n").split("\n");
+    var out = [], i = 0;
+
+    while (i < lines.length) {
+      var line = lines[i];
+
+      if (/^\s*```/.test(line)) {
+        var buf = [];
+        i++;
+        while (i < lines.length && !/^\s*```/.test(lines[i])) { buf.push(lines[i]); i++; }
+        i++;
+        out.push("<pre><code>" + esc(buf.join("\n")) + "</code></pre>");
+        continue;
+      }
+
+      if (/^\s*\|/.test(line) && i + 1 < lines.length && /^\s*\|[\s:|-]+\|?[\s:|-]*$/.test(lines[i + 1])) {
+        var head = tableCells(line);
+        i += 2;
+        var body = [];
+        while (i < lines.length && /^\s*\|/.test(lines[i])) { body.push(tableCells(lines[i])); i++; }
+        out.push('<div class="tablewrap"><table><thead><tr>' +
+          head.map(function (c) { return "<th>" + inlineMd(c) + "</th>"; }).join("") +
+          "</tr></thead><tbody>" +
+          body.map(function (r) {
+            return "<tr>" + r.map(function (c) { return "<td>" + inlineMd(c) + "</td>"; }).join("") + "</tr>";
+          }).join("") + "</tbody></table></div>");
+        continue;
+      }
+
+      var m = line.match(/^(#{1,4})\s+(.*)$/);
+      if (m) {
+        var lv = Math.min(m[1].length + 1, 4);
+        out.push("<h" + lv + ">" + inlineMd(m[2]) + "</h" + lv + ">");
+        i++;
+        continue;
+      }
+
+      if (/^\s*[-*]\s+/.test(line)) {
+        var ul = [];
+        while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) {
+          ul.push(lines[i].replace(/^\s*[-*]\s+/, ""));
+          i++;
+        }
+        out.push("<ul>" + ul.map(function (x) { return "<li>" + inlineMd(x) + "</li>"; }).join("") + "</ul>");
+        continue;
+      }
+
+      if (/^\s*>\s?/.test(line)) {
+        var q = [];
+        while (i < lines.length && /^\s*>\s?/.test(lines[i])) {
+          q.push(lines[i].replace(/^\s*>\s?/, ""));
+          i++;
+        }
+        out.push("<blockquote><p>" + inlineMd(q.join(" ")) + "</p></blockquote>");
+        continue;
+      }
+
+      if (!line.trim()) { i++; continue; }
+
+      var para = [];
+      while (i < lines.length && lines[i].trim() &&
+             !/^(#{1,4}\s|\s*\||\s*[-*]\s|\s*>|\s*```)/.test(lines[i])) {
+        para.push(lines[i]);
+        i++;
+      }
+      if (para.length) out.push("<p>" + inlineMd(para.join(" ")) + "</p>");
+    }
+    return out.join("");
+  }
+
+  function updatePreview(it) {
+    var box = $("previewBody");
+    if (!box) return;
+    var body = (it && it.body) || [];
+    var text = body.join("\n").trim();
+    if (!text) {
+      box.innerHTML = '<div class="hintline">这条还没有正文</div>';
+      return;
+    }
+    box.innerHTML = renderMd(text);
+  }
+
+  /* ---------- 上传 ---------- */
+  function fmtSize(n) {
+    if (n < 1024) return n + " B";
+    if (n < 1024 * 1024) return Math.round(n / 1024) + " KB";
+    return (n / 1024 / 1024).toFixed(1) + " MB";
+  }
+
+  function b64FromBuf(buf) {
+    var bytes = new Uint8Array(buf), bin = "";
+    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+
+  function safeName(n) {
+    return String(n).replace(/[\\/:*?"<>|#%]/g, "_").replace(/\s+/g, "-");
+  }
+
+  function uploadOne(file, folder, sub) {
+    var tk = token();
+    if (!tk) return Promise.reject(new Error("请先填入令牌并连接"));
+    if (file.size > 20 * 1024 * 1024) {
+      return Promise.reject(new Error(file.name + " 超过 20MB，建议放网盘"));
+    }
+
+    var rel = "assets/uploads/" + folder + "/" + (sub ? sub + "/" : "") + Date.now() + "-" + safeName(file.name);
+    var api = "https://api.github.com/repos/" + OWNER + "/" + REPO + "/contents/" + encodeURI(rel);
+
+    return file.arrayBuffer().then(function (buf) {
+      return fetch(api, {
+        method: "PUT",
+        headers: {
+          "Authorization": "Bearer " + tk,
+          "Accept": "application/vnd.github+json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          message: "上传：" + file.name,
+          content: b64FromBuf(buf),
+          branch: BRANCH
+        })
+      });
+    }).then(function (r) {
+      if (!r.ok) return r.text().then(function (t) { throw new Error("上传失败 " + r.status); });
+      return "/" + rel;
+    });
+  }
+
+  function pickImage(ta) {
+    var inp = document.createElement("input");
+    inp.type = "file";
+    inp.accept = "image/*";
+    inp.onchange = function () {
+      if (!inp.files.length) return;
+      var f = inp.files[0];
+      msg("上传图片中…");
+      uploadOne(f, "images", "").then(function (url) {
+        insertAt(ta, "![" + f.name.replace(/\.[^.]+$/, "") + "](" + url + ")");
+        msg("图片已插入，记得保存", "ok");
+      }).catch(function (e) { msg(e.message, "err"); });
+    };
+    inp.click();
+  }
+
+  /* ---------- 附件 ---------- */
+  function attachPanel(it) {
+    return '<div class="adm-attach">' +
+      '<div class="adm-attach-head">附件 · 会显示在正文末尾供下载</div>' +
+      '<div id="attachBox"></div>' +
+      '<div class="adm-attach-actions">' +
+        '<button data-addfile>添加文件</button>' +
+        '<button data-adddir>添加文件夹</button>' +
+      '</div></div>';
+  }
+
+  function renderAttach(it) {
+    var box = $("attachBox");
+    if (!box) return;
+    var list = it.attachments || [];
+    box.innerHTML = list.length
+      ? list.map(function (a, i) {
+          return '<div class="adm-attach-item">' +
+            '<span class="n">' + esc(a.name) + "</span>" +
+            '<span class="s">' + esc(a.size || "") + "</span>" +
+            '<span class="x" data-del="' + i + '">移除</span></div>';
+        }).join("")
+      : '<div class="hintline">还没有附件</div>';
+  }
+
+  function addAttachments(it, useDir) {
+    var inp = document.createElement("input");
+    inp.type = "file";
+    inp.multiple = true;
+    if (useDir) inp.setAttribute("webkitdirectory", "");
+    inp.onchange = function () {
+      var files = Array.prototype.slice.call(inp.files);
+      if (!files.length) return;
+      msg("上传中，共 " + files.length + " 个文件…");
+      var done = 0, folder = (curType === "notes" ? "notes/" : "projects/") + safeName(it.id || "misc");
+
+      files.reduce(function (chain, f) {
+        return chain.then(function () {
+          var rel = f.webkitRelativePath || f.name;
+          var sub = rel.indexOf("/") >= 0 ? rel.split("/").slice(0, -1).join("/") : "";
+          return uploadOne(f, folder, sub).then(function (url) {
+            it.attachments = it.attachments || [];
+            it.attachments.push({ name: rel, path: url, size: fmtSize(f.size) });
+            done++;
+            dirty = true;
+            renderAttach(it);
+            msg("已上传 " + done + "/" + files.length + "，记得点保存");
+          });
+        });
+      }, Promise.resolve()).then(function () {
+        msg("上传完成，共 " + done + " 个，记得点保存", "ok");
+      }).catch(function (e) { msg(e.message, "err"); });
+    };
+    inp.click();
+  }
+
+  /* ---------- 表单 ---------- */
+  function renderEdit() {
+    var it = items()[curIndex];
+    var delB = $("delBtn");
+    if (delB) delB.disabled = !it;
+    if (!it) {
+      $("edit").innerHTML = '<div class="adm-empty">从左侧选一条，或点「新建一条」</div>';
+      updatePreview(null);
+      return;
+    }
+
+    var html = "";
+    if (curType === "projects") {
+      html += '<div class="adm-row">' + field("标题", "title", it.title) + field("标识 id（英文，唯一）", "id", it.id) + "</div>";
+      html += field("副标题", "subtitle", it.subtitle);
+      html += '<div class="adm-row">' + field("分类", "category", it.category, "", "select") + field("状态", "status", it.status) + "</div>";
+      html += field("摘要", "summary", it.summary, "显示在列表页和详情页开头", "area");
+      html += field("标签", "tags", (it.tags || []).join("、"), "用顿号或逗号分隔");
+      html += field("参数表", "specs", (it.specs || []).map(function (r) { return r[0] + " | " + r[1]; }).join("\n"),
+        "每行一条，格式：名称 | 值", "area");
+      html += bodyField(it, "支持 ## 标题、- 列表、> 引用、表格、图片、链接，以及反引号代码");
+      html += field("链接", "links", (it.links || []).map(function (l) { return l.label + " | " + l.url; }).join("\n"),
+        "每行一条，格式：文字 | 链接，显示在正文下方", "area");
+      html += attachPanel(it);
+    } else if (curType === "notes") {
+      html += field("标题", "title", it.title);
+      html += '<div class="adm-row">' + field("标识 id（英文，唯一）", "id", it.id) + field("日期", "date", it.date, "如 2026-11") + "</div>";
+      html += field("标签", "tags", (it.tags || []).join("、"), "用顿号或逗号分隔");
+      html += field("摘要", "summary", it.summary, "", "area");
+      html += bodyField(it, "支持 ## 标题、- 列表、> 引用、表格、图片、链接，以及反引号代码");
+      html += attachPanel(it);
+    } else {
+      html += field("名称", "name", it.name);
+      html += '<div class="adm-row">' +
+        field("类型", "kind", it.kind, "datasheet / manual / tool / image / other") +
+        field("大小", "size", it.size, "可留空") + "</div>";
+      html += field("说明", "note", it.note);
+      html += field("链接", "url", it.url, "网盘或外部地址，填了以后条目可点击");
+    }
+
+    $("edit").innerHTML = html;
+
+    Array.prototype.forEach.call($("edit").querySelectorAll("[data-k]"), function (el) {
+      el.addEventListener("input", function () { applyField(el); });
+      el.addEventListener("change", function () { applyField(el); });
+    });
+
+    /* 正文工具栏 */
+    var tools = $("edit").querySelector("[data-tools]");
+    if (tools) {
+      tools.addEventListener("click", function (e) {
+        var b = e.target.closest("button[data-ins]");
+        if (!b) return;
+        var ta = $("edit").querySelector('textarea[data-k="body"]');
+        if (!ta) return;
+        var kind = b.getAttribute("data-ins");
+        if (kind === "image") { pickImage(ta); return; }
+        var snip = {
+          h2: "\n## 小标题\n",
+          ul: "\n- 列表项\n- 列表项\n",
+          quote: "\n> 引用内容\n",
+          code: "\n```\n代码\n```\n",
+          table: "\n| 名称 | 值 |\n|---|---|\n|  |  |\n",
+          link: "[文字](https://example.com)"
+        };
+        insertAt(ta, snip[kind] || "");
+      });
+    }
+
+    /* 附件 */
+    if (it.attachments !== undefined || curType !== "files") {
+      renderAttach(it);
+      var box = $("attachBox");
+      if (box) {
+        box.addEventListener("click", function (e) {
+          var x = e.target.closest("[data-del]");
+          if (!x) return;
+          it.attachments.splice(parseInt(x.getAttribute("data-del"), 10), 1);
+          dirty = true;
+          renderAttach(it);
+        });
+      }
+      var af = $("edit").querySelector("[data-addfile]");
+      var ad = $("edit").querySelector("[data-adddir]");
+      if (af) af.addEventListener("click", function () { addAttachments(it, false); });
+      if (ad) ad.addEventListener("click", function () { addAttachments(it, true); });
+    }
+
+    updatePreview(it);
+  }
+
+  function applyField(el) {
+    var it = items()[curIndex];
+    if (!it) return;
+    var k = el.getAttribute("data-k");
+    var v = el.value;
+
+    if (k === "specs") {
+      it.specs = v.split("\n").filter(function (l) { return l.trim(); }).map(function (l) {
+        var p = l.split("|");
+        return [p[0].trim(), (p[1] || "").trim()];
+      });
+    } else if (k === "links") {
+      it.links = v.split("\n").filter(function (l) { return l.trim(); }).map(function (l) {
+        var p = l.split("|");
+        return { label: p[0].trim(), url: (p[1] || "").trim() };
+      });
+    } else if (k === "tags") {
+      it.tags = v.split(/[、,，]/).map(function (t) { return t.trim(); }).filter(Boolean);
+    } else if (k === "body") {
+      it.body = v.split("\n");
+      updatePreview(it);
+    } else {
+      it[k] = v;
+    }
+    dirty = true;
+    renderList();
+  }
+
+  /* ---------- 增删 ---------- */
+  function addNew() {
+    var blank;
+    if (curType === "projects") {
+      blank = { id: "new-" + Date.now(), title: "新项目", subtitle: "", category: "硬件", status: "进行中", year: "2026", summary: "", specs: [], tags: [], links: [] };
+    } else if (curType === "notes") {
+      blank = { id: "note-" + Date.now(), title: "新笔记", date: "", tags: [], summary: "", body: [""] };
+    } else {
+      blank = { name: "新资料", kind: "other", note: "", url: "", size: "" };
+    }
+    content[curType].push(blank);
+    dirty = true;
+    select(content[curType].length - 1);
+  }
+
+  function delCurrent() {
+    if (curIndex < 0) return;
+    if (!confirm("确定删除「" + titleOf(items()[curIndex]) + "」？")) return;
+    content[curType].splice(curIndex, 1);
+    dirty = true;
+    curIndex = Math.min(curIndex, items().length - 1);
+    renderList();
+    renderEdit();
+  }
+
+  /* ---------- 保存到 GitHub ----------
+   * 用 Git 树接口一次提交四个文件：先建 blob，再建 tree，再建 commit，最后移动分支。
+   * 这样四个文件的改动落在同一个提交里，不会产生四条零碎记录。
+   */
+  async function save() {
+    var tk = token();
+    if (!tk) { msg("请先在上面填入令牌并连接", "err"); return; }
+
+    var btn = $("saveBtn");
+    btn.disabled = true;
+    msg("提交中…");
+
+    var api = "https://api.github.com/repos/" + OWNER + "/" + REPO;
+    var H = { "Authorization": "Bearer " + tk, "Accept": "application/vnd.github+json" };
+    var HJ = { "Authorization": "Bearer " + tk, "Accept": "application/vnd.github+json", "Content-Type": "application/json" };
+
+    try {
+      var head = await fetch(api + "/git/ref/heads/" + BRANCH, { headers: H }).then(function (r) {
+        if (r.status === 401) throw new Error("令牌无效或已过期");
+        if (r.status === 404) throw new Error("找不到仓库或分支");
+        return r.json();
+      });
+      var headSha = head.object.sha;
+
+      var commit = await fetch(api + "/git/commits/" + headSha, { headers: H }).then(function (r) { return r.json(); });
+
+      var tree = [];
+      for (var i = 0; i < PARTS.length; i++) {
+        var k = PARTS[i];
+        var blob = await fetch(api + "/git/blobs", {
+          method: "POST", headers: HJ,
+          body: JSON.stringify({ content: JSON.stringify(content[k], null, 2) + "\n", encoding: "utf-8" })
+        }).then(function (r) {
+          if (!r.ok) throw new Error("写入文件失败");
+          return r.json();
+        });
+        tree.push({ path: "content/" + k + ".json", mode: "100644", type: "blob", sha: blob.sha });
+      }
+
+      var newTree = await fetch(api + "/git/trees", {
+        method: "POST", headers: HJ,
+        body: JSON.stringify({ base_tree: commit.tree.sha, tree: tree })
+      }).then(function (r) { return r.json(); });
+
+      var newCommit = await fetch(api + "/git/commits", {
+        method: "POST", headers: HJ,
+        body: JSON.stringify({
+          message: "内容更新：" + new Date().toISOString().slice(0, 16).replace("T", " "),
+          tree: newTree.sha,
+          parents: [headSha]
+        })
+      }).then(function (r) { return r.json(); });
+
+      await fetch(api + "/git/refs/heads/" + BRANCH, {
+        method: "PATCH", headers: HJ,
+        body: JSON.stringify({ sha: newCommit.sha })
+      }).then(function (r) {
+        if (!r.ok) throw new Error("更新分支失败");
+        return r.json();
+      });
+
+      dirty = false;
+      msg("已提交，站点下次打开即为最新", "ok");
+    } catch (e) {
+      msg(e.message, "err");
+    }
+
+    btn.disabled = false;
+  }
+
+  /* ---------- 事件 ---------- */
+  $("tabs").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-type]");
+    if (!b) return;
+    Array.prototype.forEach.call(this.querySelectorAll("button"), function (x) { x.classList.remove("on"); });
+    b.classList.add("on");
+    curType = b.getAttribute("data-type");
+    curIndex = -1;
+    renderList();
+    renderEdit();
+    if (items().length) select(0);
+  });
+
+  $("list").addEventListener("click", function (e) {
+    var row = e.target.closest(".adm-item");
+    if (row) select(parseInt(row.getAttribute("data-i"), 10));
+  });
+
+  $("addBtn").addEventListener("click", addNew);
+  $("saveBtn").addEventListener("click", save);
+  $("delBtn").addEventListener("click", delCurrent);
+
+  $("tokenSave").addEventListener("click", function () {
+    var v = $("tokenInput").value.trim();
+    if (!v) return;
+    localStorage.setItem(TOKEN_KEY, v);
+    $("tokenInput").value = "";
+    $("tokenRow").style.display = "none";
+    $("status").textContent = "已连接";
+    $("status").classList.add("on");
+    msg("已保存令牌到本机浏览器", "ok");
+  });
+
+  window.addEventListener("beforeunload", function (e) {
+    if (dirty) { e.preventDefault(); e.returnValue = ""; }
+  });
+
+  /* 编辑器背景同样取 theme.json 的 admin 壁纸 */
+  fetch("/content/theme.json", { cache: "no-cache" }).then(function (r) {
+    if (!r.ok) throw new Error("theme");
+    return r.json();
+  }).then(function (t) {
+    var bg = document.querySelector(".bg");
+    if (bg && t && t.admin) bg.style.backgroundImage = 'url("' + t.admin + '")';
+  }).catch(function () {});
+
+  boot();
+})();
+</script>
+</body>
+</html>

@@ -11,11 +11,21 @@
 | 部分 | 位置 | 作用 |
 |---|---|---|
 | 访客端 | `index.html` + `assets/` | 展示项目、笔记、资料 |
-| 管理端 | `admin/index.html` | 在网页上增删改内容，保存即发布 |
-| 内容 | `content/` 目录 | 四个 JSON 文件，与站点代码分开存放 |
+| 管理端欢迎页 | `admin/index.html` | 内容管理的入口，一点五层 |
+| 内容编辑器 | `admin/manage.html` | 在网页上增删改内容，保存即发布，二层 |
+| 壁纸管理 | `admin/theme.html` | 分别设置访客端 / 管理端壁纸，二层 |
+| 内容 | `content/` 目录 | 五个 JSON 文件，与站点代码分开存放 |
 | 手册 | `admin/manual.html` + `admin/manual.md` | 本页，由浏览器实时渲染 markdown |
 
-内容区四个文件各管一类：
+管理端分三层，每层有自己的网址：
+
+| 层级 | 网址 | 页面 |
+|---|---|---|
+| 一层 | `/` | 访客首页 |
+| 一点五层 | `/admin/` | 内容管理欢迎页，「← 返回站点」回访客首页 |
+| 二层 | `/admin/manage.html`、`/admin/theme.html` | 编辑器、壁纸管理，「← 内容管理」回欢迎页 |
+
+内容区五个文件各管一类：
 
 | 文件 | 装什么 |
 |---|---|
@@ -23,8 +33,9 @@
 | `content/projects.json` | 项目列表 |
 | `content/notes.json` | 笔记列表 |
 | `content/files.json` | 资料列表 |
+| `content/theme.json` | 访客端 / 管理端壁纸地址 |
 
-**保存机制**：管理端点保存时，用 Git 树接口把四个文件一次性写入，四个文件的改动落在**同一个提交**里，不会产生四条零碎记录。
+**保存机制**：编辑器点保存时，用 Git 树接口把四个内容文件一次性写入，落在**同一个提交**里；壁纸页点保存时单独提交 `theme.json`。都不会产生零碎记录。
 
 **关键约束**：不要在管理端开着的时候，又去 GitHub 网页上改 `content/` 里的文件。管理端保存会整体重写这四个文件，两边同时改会互相覆盖。
 
@@ -36,9 +47,11 @@
 
 ### 进入管理端
 
-打开 <https://liuyun2026.github.io/admin/>，第一次需要填令牌（见第三节），之后这台设备会自动记住。
+打开 <https://liuyun2026.github.io/admin/> 进入欢迎页，点「管理」气泡进入编辑器。第一次需要填令牌（见第三节），之后这台设备会自动记住。
 
 ### 界面
+
+编辑器（`/admin/manage.html`）左上角「← 内容管理」随时返回欢迎页。
 
 左侧三个标签切换 **项目 / 笔记 / 资料**，点列表里的一条，右侧出现对应表单。
 
@@ -178,18 +191,22 @@ site/
 ├── index.html              访客端外壳
 ├── 404.html                深层路径兜底，发布时由 index.html 复制
 ├── admin/
-│   ├── index.html          管理端
+│   ├── index.html          管理端欢迎页（一点五层）
+│   ├── manage.html         内容编辑器（二层）
+│   ├── theme.html          壁纸管理（二层）
 │   ├── manual.html         本手册的渲染页
 │   └── manual.md           手册正文，改这个文件即可
 ├── assets/                 站点自身的代码与资源
 │   ├── css/style.css
+│   ├── css/admin.css       管理端三页共用样式
 │   ├── js/app.js
-│   └── img/wallpaper.jpg
+│   └── img/wallpaper.jpg   默认壁纸
 ├── content/                内容，与管理端共用
 │   ├── meta.json
 │   ├── projects.json
 │   ├── notes.json
-│   └── files.json
+│   ├── files.json
+│   └── theme.json          壁纸配置
 └── .github/workflows/pages.yml   自动部署
 ```
 

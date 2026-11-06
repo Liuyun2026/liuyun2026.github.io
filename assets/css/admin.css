@@ -1,0 +1,259 @@
+/* ============================================================================
+ * admin.css —— 管理端三页共用（欢迎页 / manage.html 编辑器 / theme.html 壁纸）
+ * 基础玻璃风格来自 style.css，这里只放管理端自身的布局
+ * ========================================================================== */
+
+/* ---- 欢迎页容器 ---- */
+.adm-welcome { position: relative; z-index: 1; }
+
+/* ---- 二层页面通用：顶栏 + 内容区，正常文档流 ---- */
+.adm-page {
+  position: relative; z-index: 1;
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+}
+
+.adm-top {
+  flex-shrink: 0;
+  position: relative; z-index: 20;
+  display: flex; align-items: center; gap: 14px;
+  width: 100%;
+  padding: 18px 24px 14px;
+  background: linear-gradient(180deg, rgba(7,9,16,.92), rgba(7,9,16,.6) 70%, transparent);
+}
+.adm-top h1 { font-size: 16px; font-weight: 700; letter-spacing: .01em; }
+.adm-back { font-size: 13px; color: var(--fg-3); }
+.adm-back:hover { color: var(--accent); }
+.adm-status {
+  margin-left: auto; font-size: 12px; padding: 5px 12px; border-radius: 999px;
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); color: var(--fg-3);
+}
+.adm-status.on { color: var(--ok); border-color: rgba(95,217,139,.3); background: rgba(95,217,139,.1); }
+
+/* ---- 编辑器（manage.html）：接管整个视口 ---- */
+.adm-editor {
+  position: fixed; inset: 0; z-index: 40;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  background: rgba(7, 9, 16, .86);
+  -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+}
+
+.adm-main {
+  flex: 1; min-height: 0;
+  width: 100%;
+  padding: 0 24px 16px;
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr) 380px;
+  gap: 16px;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.adm-panel {
+  border-radius: var(--r); padding: 16px;
+  background: linear-gradient(158deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
+  -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+  border: 1px solid var(--edge);
+  box-shadow: var(--sh);
+}
+
+.adm-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+.adm-tabs button {
+  flex: 1; font-size: 12.5px; padding: 7px 0; border-radius: 999px; cursor: pointer;
+  color: var(--fg-2); background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.09); font-family: inherit; transition: .2s;
+}
+.adm-tabs button.on { color: #fff; background: rgba(26,35,51,.75); border-color: rgba(255,255,255,.24); font-weight: 600; }
+
+.adm-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 12px; border-radius: 12px; cursor: pointer;
+  border: 1px solid transparent; transition: .18s;
+}
+.adm-item:hover { background: rgba(255,255,255,.05); }
+.adm-item.on { background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.16); }
+.adm-item .t { font-size: 13.5px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-item .d { font-size: 11px; color: var(--fg-3); flex-shrink: 0; }
+
+.adm-add {
+  width: 100%; margin-top: 12px; padding: 10px; border-radius: 999px; cursor: pointer;
+  font-size: 13px; font-family: inherit; color: var(--accent);
+  background: rgba(127,178,255,.1); border: 1px dashed rgba(127,178,255,.35);
+}
+.adm-add:hover { background: rgba(127,178,255,.16); }
+
+.adm-field { margin-bottom: 14px; }
+.adm-field > label { display: block; font-size: 12px; color: var(--fg-3); margin-bottom: 6px; letter-spacing: .03em; }
+.adm-field input, .adm-field textarea, .adm-field select {
+  width: 100%; font-family: inherit; font-size: 13.5px; color: var(--fg);
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.11);
+  border-radius: 10px; padding: 10px 12px; outline: none; transition: .2s;
+}
+.adm-field textarea { min-height: 90px; line-height: 1.7; resize: vertical; }
+.adm-field textarea[data-k="specs"],
+.adm-field textarea[data-k="links"],
+.adm-field textarea[data-k="body"] { min-height: 200px; }
+.adm-field input:focus, .adm-field textarea:focus, .adm-field select:focus {
+  border-color: rgba(127,178,255,.5); background: rgba(255,255,255,.08);
+}
+.adm-field .hintline { font-size: 11.5px; color: var(--fg-3); margin-top: 5px; line-height: 1.6; }
+.adm-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.adm-token { display: flex; gap: 8px; margin-bottom: 14px; }
+.adm-token input { flex: 1; }
+.adm-token button {
+  padding: 0 14px; border-radius: 10px; cursor: pointer; font-size: 12.5px; font-family: inherit;
+  color: var(--fg); background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
+  white-space: nowrap; flex-shrink: 0;
+}
+
+.adm-manual {
+  padding: 9px 18px; font-size: 12.5px; color: var(--fg-3);
+  border-radius: 999px; border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04); transition: .2s; flex-shrink: 0;
+}
+.adm-manual:hover { color: var(--accent); border-color: rgba(127,178,255,.35); }
+
+/* ---- 正文工具栏 ---- */
+.adm-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.adm-tools button {
+  font-size: 12px; padding: 5px 11px; border-radius: 8px; cursor: pointer;
+  color: var(--fg-2); background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.1); font-family: inherit; transition: .18s;
+}
+.adm-tools button:hover { color: #fff; background: rgba(255,255,255,.11); }
+
+/* ---- 附件区 ---- */
+.adm-attach { margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.08); }
+.adm-attach-head { font-size: 12px; color: var(--fg-3); margin-bottom: 10px; }
+.adm-attach-item {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+  border-radius: 8px; background: rgba(255,255,255,.04); margin-bottom: 6px; font-size: 12.5px;
+}
+.adm-attach-item .n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-attach-item .s { color: var(--fg-3); font-size: 11px; flex-shrink: 0; }
+.adm-attach-item .x { cursor: pointer; color: var(--fg-3); flex-shrink: 0; }
+.adm-attach-item .x:hover { color: #F2757A; }
+.adm-attach-actions { display: flex; gap: 8px; margin-top: 8px; }
+.adm-attach-actions button {
+  flex: 1; padding: 8px; border-radius: 8px; cursor: pointer; font-size: 12px;
+  color: var(--fg-2); background: rgba(255,255,255,.05);
+  border: 1px dashed rgba(255,255,255,.14); font-family: inherit;
+}
+.adm-attach-actions button:hover { color: #fff; border-color: rgba(255,255,255,.28); }
+
+/* ---- 左右栏：自身不滚，内部区域滚 ---- */
+.adm-left, .adm-preview {
+  display: flex; flex-direction: column;
+  padding: 0; overflow: hidden; min-height: 0;
+}
+.adm-col-scroll {
+  flex: 1; min-height: 0; overflow-y: auto; padding: 16px;
+}
+#edit { overflow-y: auto; min-height: 0; }
+
+.adm-manual {
+  flex-shrink: 0; margin: 0 14px 14px; padding: 9px 0;
+  text-align: center; border-radius: 999px;
+}
+
+.adm-preview-foot {
+  flex-shrink: 0; padding: 12px 14px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  background: rgba(8,11,17,.5);
+}
+.adm-preview-foot .adm-msg { margin: 0 0 8px; text-align: left; min-height: 16px; }
+.adm-foot-btns { display: flex; align-items: center; gap: 8px; }
+.adm-foot-btns .adm-del { flex-shrink: 0; }
+.adm-foot-btns .adm-save { margin-left: auto; }
+.adm-preview-head {
+  font-size: 11.5px; color: var(--fg-3); letter-spacing: .08em;
+  margin-bottom: 14px; padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.adm-preview-body { font-size: 13.5px; }
+.adm-preview-body h2 { font-size: 16px; margin: 20px 0 10px; padding-left: 12px; }
+.adm-preview-body h3 { font-size: 14px; margin: 16px 0 8px; }
+.adm-preview-body p { font-size: 13.5px; line-height: 1.8; margin-bottom: 12px; }
+.adm-preview-body ul { padding-left: 18px; margin-bottom: 12px; }
+.adm-preview-body li { font-size: 13.5px; margin: 4px 0; }
+.adm-preview-body table { font-size: 12px; }
+.adm-preview-body th, .adm-preview-body td { padding: 7px 9px; }
+.adm-preview-body img { margin: 12px 0; }
+
+.adm-empty { padding: 40px 10px; text-align: center; color: var(--fg-3); font-size: 13px; }
+
+/* ---- 保存/删除/消息 ---- */
+.adm-actions {
+  display: flex; align-items: center; gap: 14px;
+  margin-top: 28px; padding-top: 22px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+.adm-del {
+  padding: 9px 16px; border-radius: 999px; font-size: 12.5px; cursor: pointer;
+  color: #F2757A; background: rgba(242,117,122,.08);
+  border: 1px solid rgba(242,117,122,.3); font-family: inherit; transition: .2s;
+}
+.adm-del:hover { background: rgba(242,117,122,.16); }
+.adm-del:disabled { opacity: .35; cursor: default; background: transparent; }
+.adm-save {
+  margin-left: auto; padding: 11px 26px; border-radius: 999px; font-size: 13.5px; font-weight: 600; cursor: pointer;
+  color: #06101F; background: linear-gradient(140deg, #9CC4FF, #4FE3C1); border: 0; font-family: inherit;
+}
+.adm-save:disabled { opacity: .5; cursor: default; }
+.adm-msg { font-size: 12.5px; color: var(--fg-3); margin-left: auto; text-align: right; }
+.adm-msg.ok { color: var(--ok); }
+.adm-msg.err { color: #F2757A; }
+
+/* ---- 壁纸管理页（theme.html）---- */
+.theme-main {
+  flex: 1; width: 100%; max-width: 920px; margin: 0 auto;
+  padding: 12px 24px 40px;
+}
+.theme-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+}
+.theme-card { padding: 18px; }
+.theme-name { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+.theme-preview {
+  border-radius: 14px; overflow: hidden;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04);
+  aspect-ratio: 16 / 9;
+}
+.theme-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.theme-actions { display: flex; gap: 8px; margin-top: 14px; }
+.theme-actions button {
+  flex: 1; padding: 9px 0; border-radius: 999px; cursor: pointer; font-size: 12.5px;
+  color: var(--fg-2); background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.12); font-family: inherit; transition: .2s;
+}
+.theme-actions button:hover { color: #fff; background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.24); }
+.theme-foot {
+  display: flex; align-items: center; gap: 14px;
+  margin-top: 22px; padding-top: 18px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+.theme-foot .adm-msg { margin: 0 0 0 0; text-align: left; flex: 1; }
+
+/* ---- 响应式 ---- */
+@media (max-width: 1280px) {
+  body { display: block; height: auto; overflow: auto; }
+  .adm-main { grid-template-columns: 300px minmax(0, 1fr); overflow: visible; }
+  .adm-preview { display: none; }
+  .adm-left { overflow: visible; }
+  .adm-col-scroll, #edit { overflow: visible; }
+}
+
+@media (max-width: 860px) {
+  .adm-main { padding-left: 14px; padding-right: 14px; padding-bottom: 40px; }
+  .adm-row { grid-template-columns: 1fr; }
+  .adm-top { padding: 14px 14px 10px; }
+  .adm-panel { padding: 14px; }
+  .adm-main { grid-template-columns: minmax(0, 1fr); display: block; }
+  .adm-left { margin-bottom: 12px; }
+  .adm-manual { padding: 8px 14px; font-size: 12px; }
+  .theme-main { padding: 8px 14px 32px; }
+  .theme-grid { grid-template-columns: 1fr; }
+}

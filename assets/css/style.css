@@ -60,7 +60,8 @@ body {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: #070910 url("../img/wallpaper.jpg") center / cover no-repeat;
+  background: #070910 center / cover no-repeat;
+  background-image: url("/assets/img/wallpaper.jpg");
   filter: brightness(1.32) saturate(1.05);
   transform: translateZ(0);
 }

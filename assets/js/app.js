@@ -754,6 +754,12 @@
 
   /* ---------- 静态部分 ---------- */
 
+  /* 壁纸由 content/theme.json 决定，缺省时用内置图 */
+  function applyWallpaper(url) {
+    var bg = document.querySelector(".bg");
+    if (bg && url) bg.style.backgroundImage = 'url("' + url + '")';
+  }
+
   function initStatic() {
     document.getElementById("navStatus").textContent = S.meta.status;
     document.getElementById("navGithub").href = S.meta.github;
@@ -802,7 +808,7 @@
   initSwipe();
 
   /* 内容按类别拆在 content/ 目录下，与代码区分离 */
-  var PARTS = ["meta", "projects", "notes", "files"];
+  var PARTS = ["meta", "projects", "notes", "files", "theme"];
   Promise.all(PARTS.map(function (k) {
     return fetch("/content/" + k + ".json", { cache: "no-cache" }).then(function (res) {
       if (!res.ok) throw new Error(k + " HTTP " + res.status);
@@ -810,7 +816,8 @@
     });
   }))
     .then(function (arr) {
-      S = { meta: arr[0], projects: arr[1], notes: arr[2], files: arr[3] };
+      S = { meta: arr[0], projects: arr[1], notes: arr[2], files: arr[3], theme: arr[4] };
+      applyWallpaper(S.theme && S.theme.guest);
       initStatic();
       render();
     })
