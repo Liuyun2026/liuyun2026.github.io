@@ -156,11 +156,11 @@
     var recent = S.notes.filter(function (n) { return !n.draft; }).slice(0, 3);
 
     var bubbles = [
-      { href: "#/projects", t: "项目", e: "Projects",
+      { href: "/projects", t: "项目", e: "Projects",
         ico: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 20.5 7v10L12 21.2 3.5 17V7z"/><path d="M3.5 7 12 11.4 20.5 7M12 11.4V21.2"/></svg>' },
-      { href: "#/notes", t: "笔记", e: "Notes",
+      { href: "/notes", t: "笔记", e: "Notes",
         ico: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h9L19 7.5v13H6z"/><path d="M14.5 3.5V8H19"/><path d="M9 12h7M9 15.5h7M9 8.5h2.5"/></svg>' },
-      { href: "#/files", t: "资料", e: "Files",
+      { href: "/files", t: "资料", e: "Files",
         ico: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg>' }
     ];
 

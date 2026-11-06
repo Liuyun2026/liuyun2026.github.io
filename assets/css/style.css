@@ -421,7 +421,7 @@ body.intro-on .nav {
 }
 
 .intro-welcome {
-  font-size: clamp(17px, 5vw, 25px);
+  font-size: clamp(21px, 6.2vw, 32px);
   font-weight: 800;
   letter-spacing: .02em;
   line-height: 1.5;
