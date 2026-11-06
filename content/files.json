@@ -1,12 +1,5 @@
 [
   {
-    "name": "TPS40057 产品页与数据手册",
-    "kind": "datasheet",
-    "note": "TI 官方页面，数据手册、封装、工具都在这里",
-    "url": "https://www.ti.com/product/TPS40057",
-    "size": ""
-  },
-  {
     "name": "component-standardized-importer 源码",
     "kind": "tool",
     "note": "元件库标准化导入工具，Python",
