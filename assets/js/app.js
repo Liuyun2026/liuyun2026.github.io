@@ -807,10 +807,12 @@
 
   initSwipe();
 
-  /* 内容按类别拆在 content/ 目录下，与代码区分离 */
+  /* 内容按类别拆在 content/ 目录下，与代码区分离。
+     请求带时间戳：绕开浏览器与 CDN 对 JSON 的缓存，保存后刷新立即生效 */
   var PARTS = ["meta", "projects", "notes", "files", "theme"];
+  var bust = "?t=" + Date.now();
   Promise.all(PARTS.map(function (k) {
-    return fetch("/content/" + k + ".json", { cache: "no-cache" }).then(function (res) {
+    return fetch("/content/" + k + ".json" + bust).then(function (res) {
       if (!res.ok) throw new Error(k + " HTTP " + res.status);
       return res.json();
     });

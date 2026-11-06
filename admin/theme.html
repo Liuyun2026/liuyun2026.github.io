@@ -101,7 +101,7 @@
       $("status").classList.add("on");
       $("tokenRow").style.display = "none";
     }
-    fetch("/content/theme.json", { cache: "no-cache" }).then(function (r) {
+    fetch("/content/theme.json?t=" + Date.now()).then(function (r) {
       if (!r.ok) throw new Error("theme");
       return r.json();
     }).then(function (t) {
