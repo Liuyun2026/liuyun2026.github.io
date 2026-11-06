@@ -33,8 +33,10 @@
   function inline(t) {
     return esc(t)
       .replace(/`([^`]+)`/g, "<code>$1</code>")
+      .replace(/\!\[([^\]]*)\]\(([^)\s]+)\)/g,
+        '<img src="$2" alt="$1" loading="lazy">')
       .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
-      .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
+      .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,
         '<a href="$2" target="_blank" rel="noopener">$1</a>');
   }
 
@@ -48,8 +50,40 @@
     function closeList() { if (inList) { html += "</ul>"; inList = false; } }
     function closeQuote() { if (inQuote) { html += "</blockquote>"; inQuote = false; } }
 
+    function tableRow(t) {
+      var cells = [], cur = "", str = t.trim().replace(/^\|/, "").replace(/\|$/, "");
+      for (var k = 0; k < str.length; k++) {
+        var ch = str[k];
+        if (ch === "\\" && str[k + 1] === "|") { cur += "|"; k++; continue; }
+        if (ch === "|") { cells.push(cur.trim()); cur = ""; continue; }
+        cur += ch;
+      }
+      cells.push(cur.trim());
+      return cells;
+    }
+
     for (var i = 0; i < lines.length; i++) {
       var line = String(lines[i]).trim();
+
+      /* 表格：首行是表头，第二行是 |---| 分隔行 */
+      if (line.charAt(0) === "|" && i + 1 < lines.length &&
+          /^\|[\s:|-]+\|?[\s:|-]*$/.test(String(lines[i + 1]).trim())) {
+        flushPara(); closeList(); closeQuote();
+        var head = tableRow(line);
+        i += 2;
+        var body = [];
+        while (i < lines.length && String(lines[i]).trim().charAt(0) === "|") {
+          body.push(tableRow(String(lines[i])));
+          i++;
+        }
+        i--;
+        var th = head.map(function (c) { return "<th>" + inline(c) + "</th>"; }).join("");
+        var tb = body.map(function (r) {
+          return "<tr>" + r.map(function (c) { return "<td>" + inline(c) + "</td>"; }).join("") + "</tr>";
+        }).join("");
+        html += '<div class="tablewrap"><table><thead><tr>' + th + "</tr></thead><tbody>" + tb + "</tbody></table></div>";
+        continue;
+      }
 
       if (line.indexOf("```") === 0) {
         flushPara(); closeList(); closeQuote();
@@ -133,6 +167,24 @@
       '<div class="sub">' + esc(p.subtitle) + "</div>" +
       '<p class="sum">' + esc(p.summary) + "</p>" +
       tags(p.tags) + "</a>";
+  }
+
+  /* 附件列表：正文末尾的文件下载区 */
+  function attachments(list) {
+    if (!list || !list.length) return "";
+    return '<div class="attach">' +
+      '<div class="attach-head">附件 · ' + list.length + ' 个</div>' +
+      '<div class="attach-list">' +
+      list.map(function (a) {
+        var href = a.path || a.url || "#";
+        var local = !!a.path;
+        return '<a class="attach-item" href="' + esc(href) + '"' +
+          (local ? " download" : ' target="_blank" rel="noopener"') + ">" +
+          '<span class="attach-name">' + esc(a.name) + "</span>" +
+          (a.size ? '<span class="attach-size">' + esc(a.size) + "</span>" : "") +
+          '<span class="attach-go">' + (local ? "下载 ↓" : "打开 ↗") + "</span></a>";
+      }).join("") +
+      "</div></div>";
   }
 
   function specTable(specs) {
@@ -262,6 +314,8 @@
             (links ? '<div class="link-row">' + links + "</div>" : "") +
           "</div>" +
           specTable(p.specs) +
+          (p.body && p.body.length ? '<article class="prose detail-prose">' + md(p.body) + "</article>" : "") +
+          attachments(p.attachments) +
         "</div>" +
       "</div>"
     };
@@ -323,6 +377,7 @@
             (n.tags || []).map(esc).join(" · ") + "</div>" +
         "</div>" +
         '<article class="prose">' + md(n.body || []) + "</article>" +
+        '<div class="wrap-inner">' + attachments(n.attachments) + "</div>" +
       "</div>"
     };
   }

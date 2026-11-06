@@ -113,6 +113,34 @@
   }
   .adm-manual:hover { color: var(--accent); border-color: rgba(127,178,255,.35); }
 
+  /* 正文工具栏 */
+  .adm-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .adm-tools button {
+    font-size: 12px; padding: 5px 11px; border-radius: 8px; cursor: pointer;
+    color: var(--fg-2); background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.1); font-family: inherit; transition: .18s;
+  }
+  .adm-tools button:hover { color: #fff; background: rgba(255,255,255,.11); }
+
+  /* 附件区 */
+  .adm-attach { margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.08); }
+  .adm-attach-head { font-size: 12px; color: var(--fg-3); margin-bottom: 10px; }
+  .adm-attach-item {
+    display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+    border-radius: 8px; background: rgba(255,255,255,.04); margin-bottom: 6px; font-size: 12.5px;
+  }
+  .adm-attach-item .n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .adm-attach-item .s { color: var(--fg-3); font-size: 11px; flex-shrink: 0; }
+  .adm-attach-item .x { cursor: pointer; color: var(--fg-3); flex-shrink: 0; }
+  .adm-attach-item .x:hover { color: #F2757A; }
+  .adm-attach-actions { display: flex; gap: 8px; margin-top: 8px; }
+  .adm-attach-actions button {
+    flex: 1; padding: 8px; border-radius: 8px; cursor: pointer; font-size: 12px;
+    color: var(--fg-2); background: rgba(255,255,255,.05);
+    border: 1px dashed rgba(255,255,255,.14); font-family: inherit;
+  }
+  .adm-attach-actions button:hover { color: #fff; border-color: rgba(255,255,255,.28); }
+
   .adm-empty { padding: 40px 10px; text-align: center; color: var(--fg-3); font-size: 13px; }
 
   @media (max-width: 860px) {
@@ -250,6 +278,152 @@
       (hint ? '<div class="hintline">' + hint + "</div>" : "") + "</div>";
   }
 
+  /* ---------- 正文编辑器 ---------- */
+  function bodyField(it, hint) {
+    return '<div class="adm-field"><label>正文</label>' +
+      '<div class="adm-tools" data-tools>' +
+        '<button data-ins="h2">标题</button>' +
+        '<button data-ins="ul">列表</button>' +
+        '<button data-ins="quote">引用</button>' +
+        '<button data-ins="code">代码块</button>' +
+        '<button data-ins="table">表格</button>' +
+        '<button data-ins="link">链接</button>' +
+        '<button data-ins="image">图片</button>' +
+      '</div>' +
+      '<textarea data-k="body">' + esc((it.body || []).join("\n")) + '</textarea>' +
+      (hint ? '<div class="hintline">' + hint + '</div>' : "") +
+    '</div>';
+  }
+
+  function insertAt(ta, text) {
+    var a = ta.selectionStart, b = ta.selectionEnd, v = ta.value;
+    ta.value = v.slice(0, a) + text + v.slice(b);
+    var pos = a + text.length;
+    ta.selectionStart = ta.selectionEnd = pos;
+    ta.dispatchEvent(new Event("input", { bubbles: true }));
+    ta.focus();
+  }
+
+  /* ---------- 上传 ---------- */
+  function fmtSize(n) {
+    if (n < 1024) return n + " B";
+    if (n < 1024 * 1024) return Math.round(n / 1024) + " KB";
+    return (n / 1024 / 1024).toFixed(1) + " MB";
+  }
+
+  function b64FromBuf(buf) {
+    var bytes = new Uint8Array(buf), bin = "";
+    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+
+  function safeName(n) {
+    return String(n).replace(/[\\/:*?"<>|#%]/g, "_").replace(/\s+/g, "-");
+  }
+
+  function uploadOne(file, folder, sub) {
+    var tk = token();
+    if (!tk) return Promise.reject(new Error("请先填入令牌并连接"));
+    if (file.size > 20 * 1024 * 1024) {
+      return Promise.reject(new Error(file.name + " 超过 20MB，建议放网盘"));
+    }
+
+    var rel = "assets/uploads/" + folder + "/" + (sub ? sub + "/" : "") + Date.now() + "-" + safeName(file.name);
+    var api = "https://api.github.com/repos/" + OWNER + "/" + REPO + "/contents/" + encodeURI(rel);
+
+    return file.arrayBuffer().then(function (buf) {
+      return fetch(api, {
+        method: "PUT",
+        headers: {
+          "Authorization": "Bearer " + tk,
+          "Accept": "application/vnd.github+json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          message: "上传：" + file.name,
+          content: b64FromBuf(buf),
+          branch: BRANCH
+        })
+      });
+    }).then(function (r) {
+      if (!r.ok) return r.text().then(function (t) { throw new Error("上传失败 " + r.status); });
+      return "/" + rel;
+    });
+  }
+
+  function pickImage(ta) {
+    var inp = document.createElement("input");
+    inp.type = "file";
+    inp.accept = "image/*";
+    inp.onchange = function () {
+      if (!inp.files.length) return;
+      var f = inp.files[0];
+      msg("上传图片中…");
+      uploadOne(f, "images", "").then(function (url) {
+        insertAt(ta, "![" + f.name.replace(/\.[^.]+$/, "") + "](" + url + ")");
+        msg("图片已插入，记得保存", "ok");
+      }).catch(function (e) { msg(e.message, "err"); });
+    };
+    inp.click();
+  }
+
+  /* ---------- 附件 ---------- */
+  function attachPanel(it) {
+    return '<div class="adm-attach">' +
+      '<div class="adm-attach-head">附件 · 会显示在正文末尾供下载</div>' +
+      '<div id="attachBox"></div>' +
+      '<div class="adm-attach-actions">' +
+        '<button data-addfile>添加文件</button>' +
+        '<button data-adddir>添加文件夹</button>' +
+      '</div></div>';
+  }
+
+  function renderAttach(it) {
+    var box = $("attachBox");
+    if (!box) return;
+    var list = it.attachments || [];
+    box.innerHTML = list.length
+      ? list.map(function (a, i) {
+          return '<div class="adm-attach-item">' +
+            '<span class="n">' + esc(a.name) + "</span>" +
+            '<span class="s">' + esc(a.size || "") + "</span>" +
+            '<span class="x" data-del="' + i + '">移除</span></div>';
+        }).join("")
+      : '<div class="hintline">还没有附件</div>';
+  }
+
+  function addAttachments(it, useDir) {
+    var inp = document.createElement("input");
+    inp.type = "file";
+    inp.multiple = true;
+    if (useDir) inp.setAttribute("webkitdirectory", "");
+    inp.onchange = function () {
+      var files = Array.prototype.slice.call(inp.files);
+      if (!files.length) return;
+      msg("上传中，共 " + files.length + " 个文件…");
+      var done = 0, folder = (curType === "notes" ? "notes/" : "projects/") + safeName(it.id || "misc");
+
+      files.reduce(function (chain, f) {
+        return chain.then(function () {
+          var rel = f.webkitRelativePath || f.name;
+          var sub = rel.indexOf("/") >= 0 ? rel.split("/").slice(0, -1).join("/") : "";
+          return uploadOne(f, folder, sub).then(function (url) {
+            it.attachments = it.attachments || [];
+            it.attachments.push({ name: rel, path: url, size: fmtSize(f.size) });
+            done++;
+            dirty = true;
+            renderAttach(it);
+            msg("已上传 " + done + "/" + files.length + "，记得点保存");
+          });
+        });
+      }, Promise.resolve()).then(function () {
+        msg("上传完成，共 " + done + " 个，记得点保存", "ok");
+      }).catch(function (e) { msg(e.message, "err"); });
+    };
+    inp.click();
+  }
+
+  /* ---------- 表单 ---------- */
   function renderEdit() {
     var it = items()[curIndex];
     if (!it) {
@@ -262,19 +436,21 @@
       html += '<div class="adm-row">' + field("标题", "title", it.title) + field("标识 id（英文，唯一）", "id", it.id) + "</div>";
       html += field("副标题", "subtitle", it.subtitle);
       html += '<div class="adm-row">' + field("分类", "category", it.category, "", "select") + field("状态", "status", it.status) + "</div>";
-      html += field("摘要", "summary", it.summary, "", "area");
+      html += field("摘要", "summary", it.summary, "显示在列表页和详情页开头", "area");
       html += field("参数表", "specs", (it.specs || []).map(function (r) { return r[0] + " | " + r[1]; }).join("\n"),
         "每行一条，格式：名称 | 值", "area");
       html += field("标签", "tags", (it.tags || []).join("、"), "用顿号或逗号分隔");
       html += field("链接", "links", (it.links || []).map(function (l) { return l.label + " | " + l.url; }).join("\n"),
         "每行一条，格式：文字 | 链接", "area");
+      html += bodyField(it, "支持 ## 标题、- 列表、> 引用、表格、图片、链接，以及反引号代码");
+      html += attachPanel(it);
     } else if (curType === "notes") {
       html += field("标题", "title", it.title);
       html += '<div class="adm-row">' + field("标识 id（英文，唯一）", "id", it.id) + field("日期", "date", it.date, "如 2026-11") + "</div>";
       html += field("标签", "tags", (it.tags || []).join("、"), "用顿号或逗号分隔");
       html += field("摘要", "summary", it.summary, "", "area");
-      html += field("正文", "body", (it.body || []).join("\n"),
-        "支持 ## 标题、- 列表、> 引用、``` 代码块，行内可用 `代码` 和 **加粗**", "area");
+      html += bodyField(it, "支持 ## 标题、- 列表、> 引用、表格、图片、链接，以及反引号代码");
+      html += attachPanel(it);
     } else {
       html += field("名称", "name", it.name);
       html += '<div class="adm-row">' +
@@ -293,6 +469,48 @@
       el.addEventListener("input", function () { applyField(el); });
       el.addEventListener("change", function () { applyField(el); });
     });
+
+    /* 正文工具栏 */
+    var tools = $("edit").querySelector("[data-tools]");
+    if (tools) {
+      tools.addEventListener("click", function (e) {
+        var b = e.target.closest("button[data-ins]");
+        if (!b) return;
+        var ta = $("edit").querySelector('textarea[data-k="body"]');
+        if (!ta) return;
+        var kind = b.getAttribute("data-ins");
+        if (kind === "image") { pickImage(ta); return; }
+        var snip = {
+          h2: "\n## 小标题\n",
+          ul: "\n- 列表项\n- 列表项\n",
+          quote: "\n> 引用内容\n",
+          code: "\n```\n代码\n```\n",
+          table: "\n| 名称 | 值 |\n|---|---|\n|  |  |\n",
+          link: "[文字](https://example.com)"
+        };
+        insertAt(ta, snip[kind] || "");
+      });
+    }
+
+    /* 附件 */
+    if (it.attachments !== undefined || curType !== "files") {
+      renderAttach(it);
+      var box = $("attachBox");
+      if (box) {
+        box.addEventListener("click", function (e) {
+          var x = e.target.closest("[data-del]");
+          if (!x) return;
+          it.attachments.splice(parseInt(x.getAttribute("data-del"), 10), 1);
+          dirty = true;
+          renderAttach(it);
+        });
+      }
+      var af = $("edit").querySelector("[data-addfile]");
+      var ad = $("edit").querySelector("[data-adddir]");
+      if (af) af.addEventListener("click", function () { addAttachments(it, false); });
+      if (ad) ad.addEventListener("click", function () { addAttachments(it, true); });
+    }
+
     $("delBtn").addEventListener("click", delCurrent);
   }
 
