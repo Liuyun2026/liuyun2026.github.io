@@ -155,7 +155,8 @@
   "use strict";
 
   var OWNER = "Liuyun2026", REPO = "liuyun2026.github.io", BRANCH = "main";
-  var PATH = "assets/data/content.json";
+  /* 内容按类别拆在 content/ 目录，与站点代码分开 */
+  var PARTS = ["meta", "projects", "notes", "files"];
   var TOKEN_KEY = "gh_admin_token";
 
   var content = null;
@@ -183,10 +184,14 @@
       $("status").classList.add("on");
       $("tokenRow").style.display = "none";
     }
-    fetch("/assets/data/content.json", { cache: "no-cache" })
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
-        content = d;
+    Promise.all(PARTS.map(function (k) {
+      return fetch("/content/" + k + ".json", { cache: "no-cache" }).then(function (r) {
+        if (!r.ok) throw new Error(k);
+        return r.json();
+      });
+    }))
+      .then(function (arr) {
+        content = { meta: arr[0], projects: arr[1], notes: arr[2], files: arr[3] };
         renderList();
         if (content[curType] && content[curType].length) select(0);
       })
@@ -334,47 +339,74 @@
     renderEdit();
   }
 
-  /* ---------- 保存到 GitHub ---------- */
-  function b64(str) { return btoa(unescape(encodeURIComponent(str))); }
-
-  function save() {
+  /* ---------- 保存到 GitHub ----------
+   * 用 Git 树接口一次提交四个文件：先建 blob，再建 tree，再建 commit，最后移动分支。
+   * 这样四个文件的改动落在同一个提交里，不会产生四条零碎记录。
+   */
+  async function save() {
     var tk = token();
     if (!tk) { msg("请先在上面填入令牌并连接", "err"); return; }
+
     var btn = $("saveBtn");
     btn.disabled = true;
     msg("提交中…");
 
-    var api = "https://api.github.com/repos/" + OWNER + "/" + REPO + "/contents/" + PATH;
-    var head = { "Authorization": "Bearer " + tk, "Accept": "application/vnd.github+json" };
+    var api = "https://api.github.com/repos/" + OWNER + "/" + REPO;
+    var H = { "Authorization": "Bearer " + tk, "Accept": "application/vnd.github+json" };
+    var HJ = { "Authorization": "Bearer " + tk, "Accept": "application/vnd.github+json", "Content-Type": "application/json" };
 
-    fetch(api + "?ref=" + BRANCH, { headers: head })
-      .then(function (r) {
+    try {
+      var head = await fetch(api + "/git/ref/heads/" + BRANCH, { headers: H }).then(function (r) {
         if (r.status === 401) throw new Error("令牌无效或已过期");
-        if (!r.ok) throw new Error("读取文件失败 " + r.status);
+        if (r.status === 404) throw new Error("找不到仓库或分支");
         return r.json();
-      })
-      .then(function (info) {
-        return fetch(api, {
-          method: "PUT",
-          headers: { "Authorization": "Bearer " + tk, "Accept": "application/vnd.github+json", "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message: "内容更新：" + new Date().toISOString().slice(0, 16).replace("T", " "),
-            content: b64(JSON.stringify(content, null, 2)),
-            sha: info.sha,
-            branch: BRANCH
-          })
+      });
+      var headSha = head.object.sha;
+
+      var commit = await fetch(api + "/git/commits/" + headSha, { headers: H }).then(function (r) { return r.json(); });
+
+      var tree = [];
+      for (var i = 0; i < PARTS.length; i++) {
+        var k = PARTS[i];
+        var blob = await fetch(api + "/git/blobs", {
+          method: "POST", headers: HJ,
+          body: JSON.stringify({ content: JSON.stringify(content[k], null, 2) + "\n", encoding: "utf-8" })
+        }).then(function (r) {
+          if (!r.ok) throw new Error("写入文件失败");
+          return r.json();
         });
-      })
-      .then(function (r) {
-        if (!r.ok) return r.text().then(function (t) { throw new Error("提交失败 " + r.status); });
+        tree.push({ path: "content/" + k + ".json", mode: "100644", type: "blob", sha: blob.sha });
+      }
+
+      var newTree = await fetch(api + "/git/trees", {
+        method: "POST", headers: HJ,
+        body: JSON.stringify({ base_tree: commit.tree.sha, tree: tree })
+      }).then(function (r) { return r.json(); });
+
+      var newCommit = await fetch(api + "/git/commits", {
+        method: "POST", headers: HJ,
+        body: JSON.stringify({
+          message: "内容更新：" + new Date().toISOString().slice(0, 16).replace("T", " "),
+          tree: newTree.sha,
+          parents: [headSha]
+        })
+      }).then(function (r) { return r.json(); });
+
+      await fetch(api + "/git/refs/heads/" + BRANCH, {
+        method: "PATCH", headers: HJ,
+        body: JSON.stringify({ sha: newCommit.sha })
+      }).then(function (r) {
+        if (!r.ok) throw new Error("更新分支失败");
         return r.json();
-      })
-      .then(function () {
-        dirty = false;
-        msg("已提交，约 20 秒后站点生效", "ok");
-      })
-      .catch(function (e) { msg(e.message, "err"); })
-      .then(function () { btn.disabled = false; });
+      });
+
+      dirty = false;
+      msg("已提交，站点下次打开即为最新", "ok");
+    } catch (e) {
+      msg(e.message, "err");
+    }
+
+    btn.disabled = false;
   }
 
   /* ---------- 事件 ---------- */

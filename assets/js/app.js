@@ -735,14 +735,16 @@
 
   initSwipe();
 
-  /* 内容集中在一个 JSON 文件里，管理端保存时只改这一个文件 */
-  fetch("/assets/data/content.json", { cache: "no-cache" })
-    .then(function (res) {
-      if (!res.ok) throw new Error("HTTP " + res.status);
+  /* 内容按类别拆在 content/ 目录下，与代码区分离 */
+  var PARTS = ["meta", "projects", "notes", "files"];
+  Promise.all(PARTS.map(function (k) {
+    return fetch("/content/" + k + ".json", { cache: "no-cache" }).then(function (res) {
+      if (!res.ok) throw new Error(k + " HTTP " + res.status);
       return res.json();
-    })
-    .then(function (data) {
-      S = data;
+    });
+  }))
+    .then(function (arr) {
+      S = { meta: arr[0], projects: arr[1], notes: arr[2], files: arr[3] };
       initStatic();
       render();
     })
