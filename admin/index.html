@@ -12,8 +12,8 @@
   .adm-top {
     position: sticky; top: 0; z-index: 20;
     display: flex; align-items: center; gap: 14px;
-    max-width: 1180px; margin: 0 auto;
-    padding: 18px 20px 14px;
+    max-width: 1440px; margin: 0 auto;
+    padding: 18px 24px 14px;
     background: linear-gradient(180deg, rgba(7,9,16,.92), rgba(7,9,16,.6) 70%, transparent);
     -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
   }
@@ -27,8 +27,8 @@
   .adm-status.on { color: var(--ok); border-color: rgba(95,217,139,.3); background: rgba(95,217,139,.1); }
 
   .adm-main {
-    max-width: 1180px; margin: 0 auto; padding: 0 20px 120px;
-    display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 16px; align-items: start;
+    max-width: 1440px; margin: 0 auto; padding: 0 24px 130px;
+    display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; align-items: start;
   }
 
   .adm-panel {
@@ -88,13 +88,16 @@
     background: linear-gradient(0deg, rgba(7,9,16,.96), rgba(7,9,16,.7) 70%, transparent);
     -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
   }
-  .adm-bar > div { max-width: 1180px; margin: 0 auto; width: 100%; display: flex; align-items: center; gap: 14px; }
+  .adm-bar > div {
+    max-width: 1440px; margin: 0 auto; width: 100%;
+    display: flex; align-items: center; gap: 14px;
+  }
   .adm-save {
     padding: 11px 26px; border-radius: 999px; font-size: 13.5px; font-weight: 600; cursor: pointer;
     color: #06101F; background: linear-gradient(140deg, #9CC4FF, #4FE3C1); border: 0; font-family: inherit;
   }
   .adm-save:disabled { opacity: .5; cursor: default; }
-  .adm-msg { font-size: 12.5px; color: var(--fg-3); }
+  .adm-msg { font-size: 12.5px; color: var(--fg-3); margin-left: auto; text-align: right; }
   .adm-msg.ok { color: var(--ok); }
   .adm-msg.err { color: #F2757A; }
 
@@ -106,10 +109,9 @@
   }
 
   .adm-manual {
-    display: block; margin-top: 10px; padding: 9px;
-    text-align: center; font-size: 12.5px; color: var(--fg-3);
-    border-radius: 999px; border: 1px solid rgba(255,255,255,.08);
-    transition: .2s;
+    padding: 9px 18px; font-size: 12.5px; color: var(--fg-3);
+    border-radius: 999px; border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.04); transition: .2s; flex-shrink: 0;
   }
   .adm-manual:hover { color: var(--accent); border-color: rgba(127,178,255,.35); }
 
@@ -144,10 +146,15 @@
   .adm-empty { padding: 40px 10px; text-align: center; color: var(--fg-3); font-size: 13px; }
 
   @media (max-width: 860px) {
-    .adm-main { grid-template-columns: minmax(0, 1fr); padding-bottom: 130px; }
+    .adm-main { grid-template-columns: minmax(0, 1fr); padding-bottom: 140px; }
     .adm-row { grid-template-columns: 1fr; }
-    .adm-top { padding: 14px 16px 10px; }
-    .adm-main { padding-left: 16px; padding-right: 16px; }
+    .adm-top { padding: 14px 14px 10px; }
+    .adm-main { padding-left: 14px; padding-right: 14px; }
+    .adm-panel { padding: 14px; }
+    .adm-bar { padding: 12px 14px; }
+    .adm-bar > div { flex-wrap: wrap; gap: 10px; }
+    .adm-save { margin-left: auto; }
+    .adm-manual { padding: 8px 14px; font-size: 12px; }
   }
 </style>
 </head>
@@ -164,7 +171,7 @@
 <main class="adm-main">
   <aside class="adm-panel">
     <div class="adm-token" id="tokenRow">
-      <input id="tokenInput" type="password" placeholder="粘贴 GitHub 令牌（只需一次）" autocomplete="off">
+      <input id="tokenInput" type="password" placeholder="粘贴令牌" autocomplete="off">
       <button id="tokenSave">连接</button>
     </div>
     <div class="adm-tabs" id="tabs">
@@ -174,7 +181,6 @@
     </div>
     <div id="list"></div>
     <button class="adm-add" id="addBtn">+ 新建一条</button>
-    <a class="adm-manual" href="/admin/manual.html" target="_blank" rel="noopener">操作手册 ↗</a>
   </aside>
 
   <section class="adm-panel" id="edit"></section>
@@ -182,8 +188,9 @@
 
 <div class="adm-bar">
   <div>
-    <button class="adm-save" id="saveBtn">保存并发布</button>
+    <a class="adm-manual" href="/admin/manual.html" target="_blank" rel="noopener">操作手册 ↗</a>
     <span class="adm-msg" id="msg"></span>
+    <button class="adm-save" id="saveBtn">保存并发布</button>
   </div>
 </div>
 
