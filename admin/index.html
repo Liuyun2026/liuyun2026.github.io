@@ -26,20 +26,13 @@
   }
   .adm-status.on { color: var(--ok); border-color: rgba(95,217,139,.3); background: rgba(95,217,139,.1); }
 
-  .adm-toolbar {
-    position: relative; z-index: 1;
-    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
-    padding: 0 24px 14px;
-  }
-  .adm-items {
-    display: flex; gap: 8px; overflow-x: auto; flex: 1; min-width: 0;
-    padding-bottom: 2px;
-  }
-  .adm-items::-webkit-scrollbar { height: 4px; }
-
   .adm-main {
-    max-width: 900px; margin: 0 auto;
+    width: 100%;
     padding: 0 24px 60px;
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
   }
 
   .adm-panel {
@@ -59,19 +52,18 @@
   .adm-tabs button.on { color: #fff; background: rgba(26,35,51,.75); border-color: rgba(255,255,255,.24); font-weight: 600; }
 
   .adm-item {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 7px 14px; border-radius: 999px; cursor: pointer;
-    border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.04);
-    white-space: nowrap; transition: .18s; flex-shrink: 0;
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 12px; border-radius: 12px; cursor: pointer;
+    border: 1px solid transparent; transition: .18s;
   }
   .adm-item:hover { background: rgba(255,255,255,.05); }
   .adm-item.on { background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.16); }
-  .adm-item .t { font-size: 13px; }
+  .adm-item .t { font-size: 13.5px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .adm-item .d { font-size: 11px; color: var(--fg-3); flex-shrink: 0; }
 
   .adm-add {
-    padding: 8px 16px; border-radius: 999px; cursor: pointer; flex-shrink: 0;
-    font-size: 12.5px; font-family: inherit; color: var(--accent);
+    width: 100%; margin-top: 12px; padding: 10px; border-radius: 999px; cursor: pointer;
+    font-size: 13px; font-family: inherit; color: var(--accent);
     background: rgba(127,178,255,.1); border: 1px dashed rgba(127,178,255,.35);
   }
   .adm-add:hover { background: rgba(127,178,255,.16); }
@@ -159,12 +151,12 @@
   .adm-empty { padding: 40px 10px; text-align: center; color: var(--fg-3); font-size: 13px; }
 
   @media (max-width: 860px) {
-    .adm-main { padding-bottom: 40px; }
+    .adm-main { padding-left: 14px; padding-right: 14px; padding-bottom: 40px; }
     .adm-row { grid-template-columns: 1fr; }
     .adm-top { padding: 14px 14px 10px; }
     .adm-main { padding-left: 14px; padding-right: 14px; }
     .adm-panel { padding: 14px; }
-    .adm-toolbar { padding: 0 14px 10px; gap: 8px; }
+    .adm-main { grid-template-columns: minmax(0, 1fr); }
     .adm-manual { padding: 8px 14px; font-size: 12px; }
     .adm-actions { flex-wrap: wrap; gap: 10px; }
   }
@@ -180,21 +172,21 @@
   <span class="adm-status" id="status">未连接</span>
 </header>
 
-<div class="adm-toolbar">
-  <div class="adm-token" id="tokenRow">
-    <input id="tokenInput" type="password" placeholder="粘贴令牌" autocomplete="off">
-    <button id="tokenSave">连接</button>
-  </div>
-  <div class="adm-tabs" id="tabs">
-    <button data-type="projects" class="on">项目</button>
-    <button data-type="notes">笔记</button>
-    <button data-type="files">资料</button>
-  </div>
-  <div class="adm-items" id="list"></div>
-  <button class="adm-add" id="addBtn">+ 新建</button>
-</div>
-
 <main class="adm-main">
+  <aside class="adm-panel">
+    <div class="adm-token" id="tokenRow">
+      <input id="tokenInput" type="password" placeholder="粘贴令牌" autocomplete="off">
+      <button id="tokenSave">连接</button>
+    </div>
+    <div class="adm-tabs" id="tabs">
+      <button data-type="projects" class="on">项目</button>
+      <button data-type="notes">笔记</button>
+      <button data-type="files">资料</button>
+    </div>
+    <div id="list"></div>
+    <button class="adm-add" id="addBtn">+ 新建一条</button>
+  </aside>
+
   <section class="adm-panel" id="edit"></section>
 </main>
 
