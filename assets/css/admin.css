@@ -6,6 +6,17 @@
 /* ---- 欢迎页容器 ---- */
 .adm-welcome { position: relative; z-index: 1; }
 
+/* 卡片标题后的「管理端」小字：唯一与访客端首页不同的地方 */
+.adm-tag {
+  font-size: .36em;
+  font-weight: 500;
+  color: var(--fg-3);
+  letter-spacing: .18em;
+  margin-left: 10px;
+  vertical-align: .5em;
+  white-space: nowrap;
+}
+
 /* ---- 二层页面通用：顶栏 + 内容区，正常文档流 ---- */
 .adm-page {
   position: relative; z-index: 1;
@@ -157,6 +168,13 @@
   flex-shrink: 0; margin: 0 14px 14px; padding: 9px 0;
   text-align: center; border-radius: 999px;
 }
+
+.adm-leftlinks {
+  flex-shrink: 0;
+  display: flex; gap: 10px;
+  margin: 0 14px 14px;
+}
+.adm-leftlinks .adm-manual { flex: 1; margin: 0; }
 
 .adm-preview-foot {
   flex-shrink: 0; padding: 12px 14px;
