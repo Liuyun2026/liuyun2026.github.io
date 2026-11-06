@@ -477,6 +477,8 @@
     window.setTimeout(function () {
       try { history.pushState({ path: target }, "", target); } catch (err) { location.hash = target; }
       render();
+      /* 地址先变、标题后设，历史条目的标题要再同步一次才不会记成上一页 */
+      try { history.replaceState({ path: target }, document.title, target); } catch (err) {}
 
       view.style.transition = "none";
       view.style.transform = "translateX(" + (next ? 22 : -22) + "px)";
