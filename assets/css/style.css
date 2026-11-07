@@ -473,7 +473,10 @@ html.intro-on .nav {
 /* 两句叠在同一位置，"你好"淡出时欢迎语已在原位，不会错位 */
 .intro-layer > * { grid-area: 1 / 1; }
 .intro-layer.on { opacity: 1; }
-.intro-layer > * {
+/* 只有欢迎语走这条进场：初始透明、略下沉，加 .in 时淡入浮起。
+   「你好」不走——它按字在 span 上用 animation 自己浮上来，
+   父级若再压一层 opacity: 0，字再怎么动也看不见 */
+.intro-layer > .intro-welcome {
   opacity: 0;
   transform: translateY(14px);
   transition: opacity .5s ease, transform .6s var(--ease);
@@ -489,15 +492,19 @@ html.intro-on .nav {
   text-shadow: 0 0 36px rgba(150, 195, 255, .5);
   transition: opacity .55s ease, transform .55s ease;
 }
+/* 两个字各自上浮淡入，第二个稍晚一点。
+   用 animation 而不是 transition：transition 依赖类名什么时候被改，
+   而数据一到就会撤掉 intro-pending（动画原本挂在这个类上），
+   播到一半被打断，看着就是「你好」硬闪出来；animation 一旦开始就不受类名影响 */
 .intro-hello span {
   display: inline-block;
-  opacity: 0;
-  transform: translateY(24px);
-  transition: opacity .45s ease, transform .65s cubic-bezier(.2, 1.25, .36, 1);
+  animation: hello-in .62s cubic-bezier(.2, 1.15, .35, 1) both;
 }
-.intro-hello.show { opacity: 1; transform: none; }
-.intro-hello.show span { opacity: 1; transform: none; }
-.intro-hello.show span:nth-child(2) { transition-delay: .14s; }
+.intro-hello span:nth-child(2) { animation-delay: .13s; }
+@keyframes hello-in {
+  from { opacity: 0; transform: translateY(26px); }
+  to   { opacity: 1; transform: none; }
+}
 .intro-hello.out {
   opacity: 0;
   transform: translateY(-16px);
@@ -541,12 +548,6 @@ html.intro-on .intro-boot:not(.fade) { opacity: 1; }
 .intro-boot.fade { display: none; }
 html:not(.intro-on) .intro-boot,
 html:not(.intro-on) .intro-layer { display: none; }
-html.intro-pending .intro-hello { animation: boot-hello .5s ease both; }
-html.ver-reload .intro-hello { animation: none; }
-@keyframes boot-hello {
-  from { opacity: 0; transform: translateY(18px); }
-  to   { opacity: 1; transform: none; }
-}
 
 /* 下 1/3：气泡目录 */
 .bubbles {

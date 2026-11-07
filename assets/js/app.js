@@ -736,10 +736,10 @@
     var welcome = layer.querySelector(".intro-welcome");
     if (!hello || !welcome) { introOff(); done(); return; }
 
-    /* 静态层首帧已显示「你好」；清掉上一轮留下的状态再接管时间轴 */
+    /* 静态层首帧已经把「你好」浮上来了（动画挂在字上，不受类名影响）；
+       这里只清上一轮留下的退场状态 */
     hello.classList.remove("out");
     welcome.classList.remove("in");
-    hello.classList.add("show");
 
     /* 档位在动画开始前定死：本机记忆已由 index.html 的首屏脚本套用，
        这里把 theme.json 的差异一并落地。之后整段片头不再切档——
@@ -787,7 +787,6 @@
     layer.classList.add("on");
 
     /* 串行节奏，总时长约五秒半 */
-    introLater(function () { hello.classList.add("show"); }, 120);
     introLater(function () { hello.classList.add("out"); }, 1250);
     introLater(function () { welcome.classList.add("in"); }, 1700);
 
