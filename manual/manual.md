@@ -15,7 +15,7 @@
 | 内容编辑器 | `manage/` | 在网页上增删改内容，保存即发布 |
 | 壁纸管理 | `theme/` | 分别设置访客端 / 管理端壁纸 |
 | 内容 | `content/` 目录 | 五个 JSON 文件，与站点代码分开存放 |
-| 手册 | `admin/manual/` + `admin/manual.md` | 本页，由浏览器实时渲染 markdown |
+| 手册 | `manual/index.html` + `manual/manual.md` | 本页，由浏览器实时渲染 markdown |
 
 全部页面的网址，除首页外都是目录式，不带 `.html`：
 
@@ -26,7 +26,7 @@
 | `/manage/` | 内容编辑器 |
 | `/theme/` | 壁纸管理 |
 | `/admin/` | 管理端主页，五个气泡的入口页 |
-| `/admin/manual/` | 本页操作手册 |
+| `/manual/` | 本页操作手册 |
 
 六个横栏项在每一页都相同：首页 / 项目 / 笔记 / 资料 / 内容 / 壁纸，当前页高亮。
 
@@ -197,13 +197,13 @@ site/
 ├── 404.html                深层路径兜底，发布时由 index.html 复制
 ├── manage/index.html       内容编辑器
 ├── theme/index.html        壁纸管理
-├── admin/
-│   ├── index.html          管理端主页
-│   ├── manual/index.html   本手册的渲染页
+├── manual/
+│   ├── index.html          本手册的渲染页
 │   └── manual.md           手册正文，改这个文件即可
+├── admin/index.html        管理端主页
 ├── assets/                 站点自身的代码与资源
 │   ├── css/style.css
-│   ├── css/admin.css       管理端与内容/壁纸页共用样式
+│   ├── css/admin.css       管理端与内容/壁纸/手册页共用样式
 │   ├── js/app.js
 │   └── img/wallpaper.jpg   默认壁纸
 ├── content/                内容，与管理端共用

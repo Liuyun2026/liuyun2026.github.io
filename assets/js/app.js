@@ -806,8 +806,8 @@
     if (!a) return;
     var href = a.getAttribute("href");
     if (!href || href.indexOf("//") === 0) return;
-    /* 独立页面（管理端、内容、壁纸）交给浏览器整页跳转，不走站内路由 */
-    if (/^\/(admin|manage|theme)(\/|$)/.test(href)) return;
+    /* 独立页面（管理端、内容、壁纸、手册）交给浏览器整页跳转，不走站内路由 */
+    if (/^\/(admin|manage|theme|manual)(\/|$)/.test(href)) return;
     e.preventDefault();
 
     var cur = pageOrder().indexOf(currentPath().replace(/^\//, "").split("/")[0] || "");
