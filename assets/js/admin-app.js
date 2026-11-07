@@ -23,7 +23,7 @@
 
   var current = "";        /* 当前渲染的视图名 */
   var transitioning = false;
-  var themeState = { guest: DEFAULT_WALLPAPER, admin: DEFAULT_WALLPAPER };
+  var themeState = { guest: DEFAULT_WALLPAPER, admin: DEFAULT_WALLPAPER, glass: "frosted" };
   var themeHistory = [];      /* 历史壁纸，随 content/theme.json 持久化 */
   var pendingUploads = [];    /* 待发布图片：{ rel, b64, url } */
   var pendingDeletes = [];    /* 待删除的仓库图片路径 */
@@ -110,6 +110,7 @@
         if (themeDirty) return;
         themeState.guest = (t && t.guest) || DEFAULT_WALLPAPER;
         themeState.admin = (t && t.admin) || DEFAULT_WALLPAPER;
+        themeState.glass = (t && t.glass === "clear") ? "clear" : "frosted";
         themeHistory = (t && Array.isArray(t.history)) ? t.history.slice() : [];
       })
       .catch(function () {});
@@ -1180,6 +1181,7 @@
     return JSON.stringify({
       guest: themeState.guest,
       admin: themeState.admin,
+      glass: themeState.glass,
       history: themeHistory.map(function (it) {
         return { url: it.url, name: it.name, side: it.side, at: it.at, ts: it.ts || 0 };
       })
@@ -1210,6 +1212,13 @@
           '</div>' +
         '</section>' +
       '</div>' +
+      '<section class="adm-panel theme-glass">' +
+        '<div class="theme-name">玻璃质感 <span class="hintline" style="display:inline">首页卡片与内容框的背面效果</span></div>' +
+        '<div class="glass-switch" id="glassSwitch">' +
+          '<button data-glass="clear">透明</button>' +
+          '<button data-glass="frosted">磨砂</button>' +
+        '</div>' +
+      '</section>' +
       '<section class="adm-panel theme-history">' +
         '<div class="theme-history-head">' +
           '<div class="theme-name">历史记录 <span class="hintline" style="display:inline">点「使用」切换当前壁纸</span></div>' +
@@ -1236,9 +1245,33 @@
   function applyThemeLocal() {
     /* 本地上传的预览不依赖连接，照常显示；
        否则未连接时不动 .bg，让 CSS 里的默认壁纸原样生效 */
-    if (localPreview.admin) { applyAdminWallpaper(localPreview.admin); return; }
+    if (localPreview.admin) { applyAdminWallpaper(localPreview.admin); applyGlass(); return; }
     if (!token()) return;
     applyAdminWallpaper(themeState.admin);
+    applyGlass();
+  }
+
+  /* 玻璃质感：透明 / 磨砂。类挂在 <html> 上，访客端与管理端共用同一套样式 */
+  function applyGlass() {
+    document.documentElement.classList.toggle("glass-clear", themeState.glass === "clear");
+  }
+
+  function renderGlassSwitch() {
+    var box = $("glassSwitch");
+    if (!box) return;
+    [].forEach.call(box.querySelectorAll("button[data-glass]"), function (b) {
+      b.classList.toggle("on", b.getAttribute("data-glass") === themeState.glass);
+    });
+  }
+
+  function setGlass(v) {
+    if (v !== "clear" && v !== "frosted") return;
+    if (themeState.glass === v) return;
+    themeState.glass = v;
+    themeDirty = true;
+    applyGlass();
+    renderGlassSwitch();
+    msg("已切换为" + (v === "clear" ? "透明" : "磨砂") + "，点「保存并发布」后访客端生效", "ok");
   }
 
   /* 上传只压缩并暂存在内存，不发网络请求；发布由 saveTheme 一次完成 */
@@ -1549,6 +1582,16 @@
     var saveB = $("saveBtn");
     if (saveB) saveB.addEventListener("click", saveTheme);
 
+    var glassBox = $("glassSwitch");
+    if (glassBox) {
+      glassBox.addEventListener("click", function (e) {
+        var b = e.target.closest ? e.target.closest("button[data-glass]") : null;
+        if (!b) return;
+        setGlass(b.getAttribute("data-glass"));
+      });
+    }
+    renderGlassSwitch();
+
     if (token() && $("tokenRow")) $("tokenRow").style.display = "none";
 
     refreshThemeView();
@@ -1562,6 +1605,7 @@
       refreshPreview("admin");
       renderHistory();
       applyThemeLocal();
+      renderGlassSwitch();
       scanRepoHistory();
     });
   }

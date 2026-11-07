@@ -1252,6 +1252,50 @@ html.from-admin [data-nav-extra] { display: block; }
   border: 1px solid var(--edge);
   box-shadow: var(--sh), var(--inner);
 }
+
+/* ---- 玻璃质感：透明 / 磨砂 ----
+   由管理端壁纸页切换，类挂在 <html> 上，theme.json 的 glass 字段决定。
+   只调整模糊半径与背景浓度，壁纸本身不动。
+   排除 .is-intro：片头铺满态用的是不透明深色底，不能被这里覆盖 */
+html.glass-clear .jelly:not(.is-intro),
+html.glass-clear .jlist,
+html.glass-clear .glass {
+  -webkit-backdrop-filter: blur(7px) saturate(130%);
+  backdrop-filter: blur(7px) saturate(130%);
+}
+html.glass-clear .jelly:not(.is-intro) {
+  background: linear-gradient(158deg, rgba(255, 255, 255, .1), rgba(255, 255, 255, .035) 46%, rgba(255, 255, 255, .015));
+  border-color: rgba(255, 255, 255, .22);
+}
+html.glass-clear .jlist,
+html.glass-clear .glass {
+  background: linear-gradient(158deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .018));
+}
+html.glass-clear .bubble {
+  -webkit-backdrop-filter: blur(6px) saturate(130%);
+  backdrop-filter: blur(6px) saturate(130%);
+}
+
+/* 壁纸页的「透明 / 磨砂」气泡开关 */
+.glass-switch { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.glass-switch button {
+  border-radius: 999px;
+  padding: 8px 20px;
+  font-size: 13px;
+  color: var(--fg-2);
+  background: rgba(255, 255, 255, .06);
+  border: 1px solid rgba(255, 255, 255, .16);
+  cursor: pointer;
+  transition: color .2s, background .2s, border-color .2s, box-shadow .25s;
+}
+.glass-switch button:hover { color: #fff; background: rgba(255, 255, 255, .1); }
+.glass-switch button.on {
+  color: #fff;
+  background: rgba(47, 123, 255, .2);
+  border-color: rgba(47, 123, 255, .55);
+  box-shadow: 0 0 24px -8px rgba(47, 123, 255, .65);
+}
+
 .jrow {
   position: relative;
   padding: 16px 0 18px 26px;

@@ -928,6 +928,11 @@
     probe.src = url;
   }
 
+  /* 玻璃质感由 theme.json 的 glass 字段决定：clear 为透明，其余按磨砂 */
+  function applyGlass(v) {
+    document.documentElement.classList.toggle("glass-clear", v === "clear");
+  }
+
   function applyWallpaper(url) {
     if (!url) return;
     if (document.documentElement.classList.contains("intro-on")) {
@@ -1015,6 +1020,7 @@
         projects: arr[1], notes: arr[2], files: arr[3], journal: arr[4], theme: arr[5]
       };
       applyWallpaper(S.theme && S.theme.guest);
+      applyGlass(S.theme && S.theme.glass);
       initStatic();
       render();
     })
