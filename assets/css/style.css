@@ -353,106 +353,43 @@ html.intro-on .nav {
 .pill--link { color: var(--fg-2); }
 
 
-/* ---- 开场动画 ---- */
-/* 卡片铺满时，内容先隐藏，避免被放大变形 */
+/* ---- 开场动画：整条时间轴由 CSS 驱动，首帧即运行 ----
+   全片只用 transform: scale 一套机制：卡片从铺满视口收缩回原始尺寸。
+   玻璃渐变、backdrop-filter、弧形高光、亮边、底部反光始终是同一张卡片，
+   不存在「先画一张静止底，再换成真卡片」的交接，光泽也就不会中途突变。
+   --intro-scale / --intro-dx / --intro-dy 由首屏内联脚本在第一次绘制前量出写入。 */
 .jelly > * { transition: opacity .55s ease, transform .7s var(--ease); }
-.jelly.is-intro > *:not(.intro-layer) {
-  opacity: 0;
-  transform: translateY(14px);
-  transition: none;
-}
-/* 放大态只隐藏内容并声明合成层：玻璃渐变、backdrop-filter、弧形高光、亮边、
-   底部反光全部沿用 .jelly 本身。首帧、放大、收缩、最终是同一张卡片，
-   不存在第二套外观，光泽也就不会在动画中途突然出现 */
-.jelly.is-intro { will-change: transform; }
 
-/* 开场文字层：绝对定位在卡片内部，随卡片一起缩放，不会飘在屏幕中央 */
-/* 页面级固定层，居中于视口；只跟随气泡的位移，不参与缩放 */
-.intro-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 45;
-  display: grid;
-  place-items: center;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity .5s ease;
-  will-change: transform, opacity;
-}
-/* 两句叠在同一位置，"你好"淡出时欢迎语已在原位，不会错位 */
-.intro-layer > * { grid-area: 1 / 1; }
-.intro-layer.on { opacity: 1; }
-.intro-layer > * {
-  opacity: 0;
-  transform: translateY(14px);
-  transition: opacity .5s ease, transform .6s var(--ease);
-}
+/* 启动器尚未执行时卡片先不绘制。这里不放任何 transform，也不猜放大倍数：
+   若先用估算值画一帧，启动器再写入实测值，首帧与动画起点的倍数、位移
+   就会不一致，玻璃高光在两帧之间跳变，看起来像换了一张图。
+   隐藏期间元素仍占位，启动器可以直接量到真实尺寸。 */
+html.intro-pending .jelly { visibility: hidden; }
 
-.intro-hello {
-  display: flex;
-  gap: .06em;
-  font-size: clamp(58px, 13vw, 92px);
-  font-weight: 800;
-  letter-spacing: .04em;
-  color: #FFFFFF;
-  text-shadow: 0 0 36px rgba(150, 195, 255, .5);
-  transition: opacity .55s ease, transform .55s ease;
+html.intro-run .jelly {
+  animation: intro-card 1.15s cubic-bezier(.32, .9, .3, 1) .12s both;
+  transform-origin: 50% 50%;
+  will-change: transform;
 }
-.intro-hello span {
-  display: inline-block;
-  opacity: 0;
-  transform: translateY(24px);
-  transition: opacity .45s ease, transform .65s cubic-bezier(.2, 1.25, .36, 1);
+@keyframes intro-card {
+  from {
+    transform: translate3d(var(--intro-dx, 0px), var(--intro-dy, 0px), 0)
+               scale(var(--intro-scale, 3));
+    border-radius: 0;
+  }
+  to { transform: none; border-radius: var(--r-lg); }
 }
-.intro-hello.show { opacity: 1; transform: none; }
-.intro-hello.show span { opacity: 1; transform: none; }
-.intro-hello.show span:nth-child(2) { transition-delay: .14s; }
-.intro-hello.out {
-  opacity: 0;
-  transform: translateY(-16px);
+/* 卡片内容在收缩后半段淡入；「你好」是卡片内真实的 .jelly-tag，
+   不再有独立的大字静态层 */
+html.intro-run .jelly > * { animation: intro-content .5s ease .8s both; }
+@keyframes intro-content {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
 }
-
-.intro-welcome {
-  font-size: clamp(21px, 6.2vw, 32px);
-  font-weight: 800;
-  letter-spacing: .02em;
-  line-height: 1.5;
-  color: #FFFFFF;
-  text-align: center;
-  text-shadow: 0 0 26px rgba(150, 195, 255, .45);
-}
-.intro-welcome .hl { color: #A9CBFF; }
-.intro-welcome.in { opacity: 1; transform: none; }
-
-/* ---- 开场首帧 ----
-   HTML 里本来就有真实的 .jelly 卡片；intro-pending 期间用 CSS 把它铺满视口。
-   玻璃渐变、backdrop-filter、弧形高光、亮边、底部反光都是这张卡片自己的属性，
-   没有仿制层，也没有「先显示假底、再淡出换成真卡片」的交接。
-   时间轴接管时撤掉铺满定位、量出原始尺寸，再用 FLIP 反向放大同一张卡片。 */
-html.intro-pending .jelly {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  width: 100%;
-  max-width: none;
-  height: 100%;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-}
-html.intro-pending .jelly > * { opacity: 0; }
 
 /* 非首页路径（含 404.html 兜底的深层地址）在等数据期间不显示首页骨架，
    render() 移除 .is-boot 后一次性换成目标视图 */
 html.boot-hidden #view.is-boot { visibility: hidden; }
-
-html:not(.intro-on) .intro-layer { display: none; }
-html.intro-pending .intro-hello { animation: boot-hello .5s ease both; }
-html.ver-reload .intro-hello { animation: none; }
-@keyframes boot-hello {
-  from { opacity: 0; transform: translateY(18px); }
-  to   { opacity: 1; transform: none; }
-}
 
 /* 下 1/3：气泡目录 */
 .bubbles {
@@ -485,15 +422,14 @@ html.ver-reload .intro-hello { animation: none; }
   transition: transform .5s var(--ease), box-shadow .5s var(--ease), border-color .3s;
   animation: none;
 }
-/* 首帧铺满由上面的 intro-pending 规则负责，卡片始终可见，不透明度全程为 1。
-   JS 撤掉 intro-pending 与加上 is-intro 在同一个任务里完成，不会闪出正常尺寸。 */
+/* 卡片从 intro-card 的 from 帧开始绘制，全程只有这一张卡片，
+   不插入任何静态占位图，也不会出现两套放大机制交接。 */
 
 /* 卡片落定后由 JS 加上 .play，气泡自下而上依次弹起 */
 html.intro-on .bubbles,
 html.intro-on footer { visibility: hidden; }
 
 /* 片头期间锁死整页：不能滚动、不能双指缩放、不能滑动切页 */
-html.intro-on,
 html.intro-on {
   overflow: hidden;
   height: 100%;

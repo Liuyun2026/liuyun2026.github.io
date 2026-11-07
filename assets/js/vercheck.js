@@ -13,9 +13,8 @@
  * 若守卫值已等于目标版本，说明上一次重载也没能拿到新版（CDN 未切换等），
  * 本轮直接放弃，绝不循环。
  *
- * window.__VERCHECK__：向开场动画暴露自检结论。
- * 版本一致（或放弃重载）时 resolve；确认要重载时保持 pending，页面随即卸载。
- * 开场动画等这个 Promise 才启动时间轴，避免播到一半被重载后重播一次。
+ * 片头动画由 CSS 首帧驱动，不等本脚本。若自检发现版本不一致，
+ * 且片头正在播放，重载会延后到 intro:done 之后，避免动画播到一半被切走。
  * ========================================================================== */
 
 (function () {
@@ -65,9 +64,18 @@
         });
       }
       params.push("v=" + remote);
-      location.replace(location.pathname + "?" + params.join("&"));
+      var target = location.pathname + "?" + params.join("&");
+      var de = document.documentElement;
 
-      /* 页面即将卸载，时间轴不启动，静态首屏保持显示到新页面接手 */
+      /* 片头正在播放时先等它收尾，否则一帧动画会被整页重载切断；
+         重载页带 v= 参数，head 判定为 ver-reload，不会重播片头 */
+      if (de.classList.contains("intro-on") && !window.__introDone) {
+        window.addEventListener("intro:done", function () {
+          location.replace(target);
+        }, { once: true });
+        return true;
+      }
+      location.replace(target);
       return NEVER;
     })
     .catch(function () {

@@ -7,12 +7,12 @@
 <meta name="robots" content="noindex">
 <meta name="color-scheme" content="dark">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%230B0F16'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='15' font-weight='bold' fill='%237FB2FF' text-anchor='middle'%3EM%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="/assets/css/style.css?v=202611072309">
-<link rel="stylesheet" href="/assets/css/admin.css?v=202611072309">
+<link rel="stylesheet" href="/assets/css/style.css?v=202611080020">
+<link rel="stylesheet" href="/assets/css/admin.css?v=202611080020">
 <script>
 /* 首屏判定：/admin/ 首次进入时，在第一次绘制前藏好顶栏，
-   由 CSS 把 HTML 里已有的真实 .jelly 铺满视口。时间轴由 admin-app.js
-   等版本自检完成后接管，避免自检重载导致重播一次。
+   由 CSS 把 HTML 里已有的真实 .jelly 按同一套 transform 放大铺满。
+   时间轴由首屏内联脚本 + CSS keyframes 驱动，不等 admin-app.js、版本自检或数据。
    /manage/、/theme/ 与版本自检重载页都不进片头状态，卡片保持正常尺寸。
    本脚本位于 head，document.body 尚不存在，标记只加在 documentElement 上。 */
 (function () {
@@ -26,30 +26,32 @@
     if (p !== "/admin") return;
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
+    /* 只加状态，不写放大倍数：/admin/ 的同步启动器量出真实尺寸后
+       一次性写入 CSS 变量并立刻启动 animation，首帧就是动画起点。
+       /manage/、/theme/ 在本页判定处直接 return，不会走到这里 */
     de.classList.add("intro-on", "intro-pending");
 
-    /* 兜底：脚本异常导致时间轴始终没启动时放出页面，避免长时间锁死 */
+    /* 兜底：内联启动器异常时放出页面，避免长时间锁死 */
     window.setTimeout(function () {
-      if (de.classList.contains("intro-pending") && !document.querySelector(".jelly.is-intro")) {
+      if (!window.__introDone && de.classList.contains("intro-on") &&
+          !de.classList.contains("intro-run")) {
         de.classList.remove("intro-pending", "intro-on");
+        window.__introDone = true;
+        window.dispatchEvent(new Event("intro:done"));
       }
-    }, 8000);
+    }, 3200);
   } catch (e) {}
 })();
 </script>
-<script src="/assets/js/pageflow.js?v=202611072309"></script>
-<script>window.__BUILD__="202611072309";</script>
-<script src="/assets/js/vercheck.js?v=202611072309"></script>
+<script src="/assets/js/pageflow.js?v=202611080020"></script>
+<script>window.__BUILD__="202611080020";</script>
+<script src="/assets/js/vercheck.js?v=202611080020"></script>
 </head>
 <body>
 
 <div class="bg" aria-hidden="true"></div>
 
 <!-- 开场首帧直接使用真实的果冻卡片（见 #admView），由 CSS 在 intro-pending 下铺满视口。 -->
-<div class="intro-layer on" id="introLayer" aria-hidden="true">
-  <div class="intro-hello show"><span>你</span><span>好</span></div>
-  <div class="intro-welcome">欢迎来到<span class="hl">流雲</span>的创客空间</div>
-</div>
 
 <!-- 统一顶栏：首页 / 内容 / 壁纸为视图切换（data-adm），项目 / 笔记 / 资料 / 访客站为真实跳转 -->
 <header class="nav adm-nav">
@@ -79,6 +81,6 @@
 <!-- 视图容器：home / manage / theme 三个视图在此互相替换 -->
 <main class="adm-view" id="admView"></main>
 
-<script src="/assets/js/admin-app.js?v=202611072309"></script>
+<script src="/assets/js/admin-app.js?v=202611080020"></script>
 </body>
 </html>

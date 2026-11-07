@@ -192,148 +192,30 @@
     '</div>';
   }
 
-  /* ---------- 开场动画 ---------- */
-
-  var introTimers = [];
-  var introRunning = false;
-
-  function introLater(fn, ms) { introTimers.push(window.setTimeout(fn, ms)); }
-  function clearIntroTimers() {
-    for (var i = 0; i < introTimers.length; i++) window.clearTimeout(introTimers[i]);
-    introTimers = [];
-  }
+  /* ---------- 开场动画 ----------
+   * 时间轴完全由 CSS keyframes 驱动（style.css 的 intro-card / intro-content），
+   * 首屏内联脚本在第一次绘制前量好尺寸并加 intro-run，动画随即开始播放。
+   * 这里只负责收尾，不驱动任何一帧。
+   */
 
   function introOff() {
-    document.documentElement.classList.remove("intro-on", "intro-pending");
+    document.documentElement.classList.remove("intro-on", "intro-run", "intro-pending");
     /* 片头结束，补上等待中的壁纸 */
     flushWallpaper();
   }
 
   function skipIntro() {
-    if (!introRunning) return;
-    introRunning = false;
-    clearIntroTimers();
-
-    var card = document.querySelector(".jelly");
-    var layer = document.getElementById("introLayer");
-
-    if (card) {
-      card.style.transition = "transform .32s cubic-bezier(.3,1,.4,1), border-radius .28s ease";
-      card.style.transform = "";
-      card.style.borderRadius = "";
-      card.classList.remove("is-intro");
-      window.setTimeout(function () { card.style.transition = ""; }, 340);
-    }
-    if (layer) {
-      layer.classList.remove("on");
-      layer.style.transition = "none";
-      layer.style.transform = "";
-    }
-    introOff();
-  }
-
-  /* 版本自检未结束前不启动时间轴：旧 HTML 会被 vercheck 重载，
-     若中途启动就会出现片头播一半后整段重播。自检慢时 500ms 兜底放行，
-     重载页带 ver-reload 会跳过片头，因此不会重播「你好」。 */
-  function afterVerCheck(fn) {
-    var vc = window.__VERCHECK__;
-    if (!vc || typeof vc.then !== "function") { fn(); return; }
-    var fired = false;
-    var go = function () { if (fired) return; fired = true; fn(); };
-    vc.then(go);
-    window.setTimeout(go, 500);
-  }
-
-  /* short = SPA 内切回主页的短版：只弹气泡，不受版本自检阻塞。
-     整页进入 /admin/ 时播完整版，沿用原时间轴。 */
-  function playIntro(short) {
-    var bubbles = document.querySelector(".bubbles");
-    var done = function () { if (bubbles) bubbles.classList.add("play"); };
-
-    if (short) { introOff(); done(); return; }
-    afterVerCheck(function () { playIntroNow(done); });
-  }
-
-  function playIntroNow(done) {
-    /* 真实卡片由 admin/index.html 静态提供，首帧就已铺满视口 */
-    var card = document.querySelector(".jelly");
-    var layer = document.getElementById("introLayer");
-
-    /* 版本自检触发的重载页不播片头，气泡直接静态就位，避免「你好」出现两次 */
-    if (document.documentElement.classList.contains("ver-reload")) {
-      introOff(); return;
-    }
-    if (!card || !layer) { introOff(); done(); return; }
-    if (reduceMotion()) { introOff(); done(); return; }
-
-    /* 撤掉首帧铺满定位，同一任务内立刻加 is-intro 反向放大，不闪出正常尺寸 */
-    document.documentElement.classList.remove("intro-pending");
-
-    var hello = layer.querySelector(".intro-hello");
-    var welcome = layer.querySelector(".intro-welcome");
-    if (!hello || !welcome) { introOff(); done(); return; }
-
-    /* 静态层首帧已显示「你好」；清掉上一轮留下的状态再接管时间轴 */
-    hello.classList.remove("out");
-    welcome.classList.remove("in");
-    hello.classList.add("show");
-
-    var r = card.getBoundingClientRect();
-    if (!r.width || !r.height) { introOff(); done(); return; }
-
-    var vw = window.innerWidth, vh = window.innerHeight;
-    var s = Math.max(vw / r.width, vh / r.height) * 1.02;
-    var dx = vw / 2 - (r.left + r.width / 2);
-    var dy = vh / 2 - (r.top + r.height / 2);
-    var move = "translate3d(" + dx + "px," + dy + "px,0)";
-
-    introRunning = true;
-    document.documentElement.classList.add("intro-on");
-    card.classList.add("is-intro");
-
-    card.style.transformOrigin = "50% 50%";
-    card.style.transform = move + " scale(" + s + ")";
-
-    layer.style.transform = "translate3d(0,0,0)";
-    layer.classList.add("on");
-
-    introLater(function () { hello.classList.add("show"); }, 120);
-    introLater(function () { hello.classList.add("out"); }, 1250);
-    introLater(function () { welcome.classList.add("in"); }, 1700);
-
-    introLater(function () {
-      var ease = "cubic-bezier(.32,.9,.3,1)";
-      card.style.transition = "transform 1.35s " + ease;
-      card.style.transform = "translate3d(0,0,0) scale(1)";
-      layer.style.transition = "transform 1.35s " + ease + ", opacity .55s ease";
-      layer.style.transform = "translate3d(" + (-dx) + "px," + (-dy) + "px,0)";
-      layer.classList.remove("on");
-    }, 2500);
-
-    /* 收缩 2500ms 起、1.35s 后即 3850ms 结束；等归位后再切回真玻璃，
-       否则玻璃质感会在收缩未完时突然打开，看起来像光泽延迟加载 */
-    introLater(function () { card.classList.remove("is-intro"); }, 3880);
-
-    introLater(function () {
-      card.style.transition = "none";
-      card.style.transform = "";
-      layer.style.transition = "none";
-      layer.style.transform = "";
-      window.setTimeout(function () {
-        card.style.transition = "";
-        layer.style.transition = "";
-      }, 60);
-      introOff();
-      done();
-      introRunning = false;
-    }, 3900);
+    if (window.__introFinish) window.__introFinish();
+    else introOff();
   }
 
   var firstAdmRender = true;
 
   function mountHome() {
-    /* 整页进入播完整版；SPA 内切回主页播短版（只弹气泡） */
-    playIntro(!firstAdmRender);
+    /* 片头只在整页进入 /admin/ 时由首屏内联脚本播放，
+       SPA 内切回主页不重播，气泡直接就位 */
+    var bs = document.querySelector(".bubbles");
+    if (bs) bs.classList.add("play");
   }
 
   /* ==========================================================================
@@ -1619,5 +1501,23 @@
   document.addEventListener("mousedown", introGuard, true);
 
   loadTheme().then(function () { applyThemeLocal(); });
-  render(viewOfPath());
+
+  /* 片头由首屏内联脚本 + CSS 时间轴驱动，不等本脚本加载。
+     片头播放期间保留首帧骨架，收尾后再重建视图，避免打断卡片动画 */
+  function bootRender() {
+    render(viewOfPath());
+    var bs = document.querySelector(".bubbles");
+    if (bs) bs.classList.add("play");
+  }
+  window.addEventListener("intro:done", function () {
+    introOff();
+    bootRender();
+  }, { once: true });
+
+  if (document.documentElement.classList.contains("intro-on") && !window.__introDone) {
+    /* 等 intro:done 收尾后再渲染 */
+  } else {
+    if (window.__introDone) introOff();
+    bootRender();
+  }
 })();
