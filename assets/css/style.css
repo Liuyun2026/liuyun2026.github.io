@@ -1258,3 +1258,12 @@ html.from-admin [data-nav-extra] { display: block; }
   color: rgba(228, 236, 244, .88);
   word-break: break-word;
 }
+.jtext .jimg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 10px 0 4px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  background: rgba(255, 255, 255, .04);
+}

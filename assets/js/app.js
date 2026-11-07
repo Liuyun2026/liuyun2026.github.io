@@ -256,7 +256,7 @@
               '<span class="jelly-tag">你好</span>' +
               '<h1>欢迎来到<span class="hl">流雲</span>的创客空间</h1>' +
               '<div class="jelly-meta">' +
-                '<span class="pill"><i class="dot"></i>' + esc(S.meta.status) + '</span>' +
+                '<span class="pill"><i class="dot"></i>站点</span>' +
                 '<a class="pill pill--link" href="' + esc(S.meta.github) + '" target="_blank" rel="noopener">GitHub ↗</a>' +
               '</div>' +
             '</div>' +
@@ -509,14 +509,32 @@
   }
 
   /* ---------- 日志与碎碎念 ----------
-   * 一条一项：日期 + 心情 + 正文（短文本，支持换行），按日期倒序
+   * 一条一项：日期 + 心情 + 正文，按日期倒序。
+   * 正文以纯文本为主，只把 ![说明](地址) 渲染成图片；
+   * 地址只放行站内路径与 http(s)，其余按原文显示。
    */
+  function journalText(raw) {
+    var s = String(raw || "");
+    var re = /!\[([^\]]*)\]\(([^)\s]+)\)/g;
+    function plain(t) { return esc(t).replace(/\n/g, "<br>"); }
+    var out = "", last = 0, m;
+    while ((m = re.exec(s)) !== null) {
+      out += plain(s.slice(last, m.index));
+      var url = m[2];
+      out += /^(\/|https?:\/\/)/i.test(url)
+        ? '<img class="jimg" src="' + esc(url) + '" alt="' + esc(m[1]) + '" loading="lazy">'
+        : plain(m[0]);
+      last = re.lastIndex;
+    }
+    out += plain(s.slice(last));
+    return out || '<span class="hintline">（空）</span>';
+  }
+
   function journalRow(it) {
     var mood = it.mood ? '<span class="jmark">' + esc(it.mood) + "</span>" : "";
-    var text = esc(it.text || "").replace(/\n/g, "<br>");
     return '<div class="jrow">' +
       '<div class="jwhen"><span class="jdate">' + esc(it.date || "") + "</span>" + mood + "</div>" +
-      '<div class="jtext">' + (text || '<span class="hintline">（空）</span>') + "</div>" +
+      '<div class="jtext">' + journalText(it.text) + "</div>" +
     "</div>";
   }
 
@@ -915,7 +933,7 @@
   }
 
   function initStatic() {
-    document.getElementById("navStatus").textContent = S.meta.status;
+    document.getElementById("navStatus").textContent = "站点";
     document.getElementById("navGithub").href = S.meta.github;
     document.getElementById("footLinks").innerHTML =
       '<a href="' + esc(S.meta.github) + '" target="_blank" rel="noopener">GitHub</a>';

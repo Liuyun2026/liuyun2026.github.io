@@ -129,7 +129,9 @@
 
 .adm-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
 .adm-tabs button {
-  flex: 1; font-size: 12.5px; padding: 7px 0; border-radius: 999px; cursor: pointer;
+  /* 按文字宽排，不强制等宽；长标签单行，四项保持一排 */
+  flex: 0 0 auto; white-space: nowrap;
+  font-size: 12.5px; padding: 7px 12px; border-radius: 999px; cursor: pointer;
   color: var(--fg-2); background: rgba(255,255,255,.05);
   border: 1px solid rgba(255,255,255,.09); font-family: inherit; transition: .2s;
 }
@@ -163,6 +165,7 @@
 .adm-field textarea[data-k="specs"],
 .adm-field textarea[data-k="links"],
 .adm-field textarea[data-k="body"] { min-height: 200px; }
+.adm-field textarea[data-k="text"] { min-height: 160px; }
 .adm-field input:focus, .adm-field textarea:focus, .adm-field select:focus {
   border-color: rgba(127,178,255,.5); background: rgba(255,255,255,.08);
 }

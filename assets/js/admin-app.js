@@ -156,8 +156,8 @@
             '<span class="jelly-tag">你好</span>' +
             '<h1>欢迎来到<span class="hl">流雲</span>的创客空间<span class="adm-tag">管理端</span></h1>' +
             '<div class="jelly-meta">' +
-              '<span class="pill"><i class="dot"></i>内容管理</span>' +
-              '<a class="pill pill--link" href="/">← 返回站点</a>' +
+              '<span class="pill"><i class="dot"></i>管理端</span>' +
+              '<a class="pill pill--link" href="/">进入站点 →</a>' +
             '</div>' +
           '</div>' +
         '</section>' +
@@ -549,8 +549,10 @@
   function updatePreview(it) {
     var box = $("previewBody");
     if (!box) return;
-    var body = (it && it.body) || [];
-    var text = body.join("\n").trim();
+    /* 日志没有 body 字段，预览直接渲染 text，图片语法在这里也可所见即所得 */
+    var text = curType === "journal"
+      ? String((it && it.text) || "").trim()
+      : ((it && it.body) || []).join("\n").trim();
     if (!text) {
       box.innerHTML = '<div class="hintline">这条还没有正文</div>';
       return;
@@ -763,7 +765,8 @@
       html += attachPanel();
     } else if (curType === "journal") {
       html += '<div class="adm-row">' + field("日期", "date", it.date) + field("心情 / 标记（可选）", "mood", it.mood, "如：好嗨 / 一般 / 累") + "</div>";
-      html += field("内容", "text", it.text, "随手记的短文本，支持换行，站点按日期倒序展示", "area");
+      html += field("内容", "text", it.text, "支持换行；点「插入图片」把图片放进正文，也可手写 ![说明](图片地址)", "area");
+      html += '<div class="adm-tools"><button type="button" data-jimg>插入图片</button></div>';
     } else {
       html += field("名称", "name", it.name);
       html += '<div class="adm-row">' +
@@ -799,6 +802,15 @@
           link: "[文字](https://example.com)"
         };
         insertAt(ta, snip[kind] || "");
+      });
+    }
+
+    /* 日志正文：复用图片上传，把 ![说明](地址) 插到光标处 */
+    var jimg = wrap.querySelector("[data-jimg]");
+    if (jimg) {
+      jimg.addEventListener("click", function () {
+        var ta = wrap.querySelector('textarea[data-k="text"]');
+        if (ta) pickImage(ta);
       });
     }
 
@@ -847,6 +859,7 @@
       updatePreview(it);
     } else {
       it[k] = v;
+      if (k === "text") updatePreview(it);
     }
     contentDirty = true;
     renderList();
