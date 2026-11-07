@@ -7,244 +7,47 @@
 <meta name="robots" content="noindex">
 <meta name="color-scheme" content="dark">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%230B0F16'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='15' font-weight='bold' fill='%237FB2FF' text-anchor='middle'%3EM%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="/assets/css/style.css?v=202611071416">
-<link rel="stylesheet" href="/assets/css/admin.css?v=202611071416">
-<script src="/assets/js/pageflow.js?v=202611071416"></script>
-<script>window.__BUILD__="202611071416";</script>
-<script src="/assets/js/vercheck.js?v=202611071416"></script>
+<link rel="stylesheet" href="/assets/css/style.css">
+<link rel="stylesheet" href="/assets/css/admin.css">
+<script src="/assets/js/pageflow.js?v=202611071430"></script>
+<script>window.__BUILD__="202611071430";</script>
+<script src="/assets/js/vercheck.js?v=202611071430"></script>
 </head>
 <body>
 
 <div class="bg" aria-hidden="true"></div>
 
-<!-- 顶栏与访客端一致，仅品牌指向管理端主页 -->
+<!-- 统一顶栏：首页 / 内容 / 壁纸为视图切换（data-adm），项目 / 笔记 / 资料 / 访客站为真实跳转 -->
 <header class="nav adm-nav">
   <div class="nav-inner">
-    <a class="brand" href="/admin/">
+    <a class="brand" href="/admin/" data-adm="home">
       <span class="mark">L</span>
       <span class="brand-txt">流雲</span>
     </a>
     <nav class="nav-links">
-      <a href="/admin/" class="on">首页</a>
+      <a href="/admin/" data-adm="home">首页</a>
       <a href="/projects?from=admin">项目</a>
       <a href="/notes?from=admin">笔记</a>
       <a href="/files?from=admin">资料</a>
-      <a href="/manage/?from=admin">内容</a>
-      <a href="/theme/?from=admin">壁纸</a>
+      <a href="/manage/" data-adm="manage">内容</a>
+      <a href="/theme/" data-adm="theme">壁纸</a>
     </nav>
     <div class="nav-right">
-      <span class="nav-status"><i class="dot"></i><span id="navStatus">管理端</span></span>
-            <a class="adm-visit" href="/" title="去访客站">访客站</a>
-      <a class="nav-ico" href="https://github.com/Liuyun2026" target="_blank" rel="noopener" aria-label="GitHub"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A7.995 7.995 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
+      <span class="nav-status"><i class="dot"></i><span id="status">未连接</span></span>
+      <a class="adm-visit" href="/" title="去访客站">访客站</a>
+      <a class="nav-ico" href="https://github.com/Liuyun2026" target="_blank" rel="noopener" aria-label="GitHub">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A7.995 7.995 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+      </a>
+      <a class="nav-ico" href="/manual/" target="_blank" rel="noopener" aria-label="操作手册">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h9L19 7.5v13H6z"/><path d="M14.5 3.5V8H19"/><path d="M9 12h7M9 15.5h7"/></svg>
+      </a>
     </div>
   </div>
 </header>
 
-<div class="adm-welcome" id="welcome">
-  <div class="home">
-    <section class="hero-jelly">
-      <div class="jelly">
-        <span class="jelly-tag">你好</span>
-        <h1>欢迎来到<span class="hl">流雲</span>的创客空间<span class="adm-tag">管理端</span></h1>
-        <div class="jelly-meta">
-          <span class="pill"><i class="dot"></i>内容管理</span>
-          <a class="pill pill--link" href="/">← 返回站点</a>
-        </div>
-      </div>
-    </section>
+<!-- 视图容器：home / manage / theme 三个视图在此互相替换 -->
+<main class="adm-view" id="admView"></main>
 
-    <nav class="bubbles">
-      <a class="bubble" href="/projects?from=admin">
-        <span class="bubble-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 20.5 7v10L12 21.2 3.5 17V7z"/><path d="M3.5 7 12 11.4 20.5 7M12 11.4V21.2"/></svg></span>
-        <span class="bubble-t">项目</span>
-        <span class="bubble-e">Projects</span>
-      </a>
-      <a class="bubble" href="/notes?from=admin">
-        <span class="bubble-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h9L19 7.5v13H6z"/><path d="M14.5 3.5V8H19"/><path d="M9 12h7M9 15.5h7M9 8.5h2.5"/></svg></span>
-        <span class="bubble-t">笔记</span>
-        <span class="bubble-e">Notes</span>
-      </a>
-      <a class="bubble" href="/files?from=admin">
-        <span class="bubble-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg></span>
-        <span class="bubble-t">资料</span>
-        <span class="bubble-e">Files</span>
-      </a>
-      <a class="bubble" href="/manage/?from=admin">
-        <span class="bubble-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9M18 7h2M4 17h3M12 17h8"/><circle cx="15.5" cy="7" r="2.2"/><circle cx="9.5" cy="17" r="2.2"/></svg></span>
-        <span class="bubble-t">内容</span>
-        <span class="bubble-e">Content</span>
-      </a>
-      <a class="bubble" href="/theme/?from=admin">
-        <span class="bubble-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M3.5 16.5 9 12l4 3.5 3.5-3 4 4"/></svg></span>
-        <span class="bubble-t">壁纸</span>
-        <span class="bubble-e">Theme</span>
-      </a>
-    </nav>
-  </div>
-
-  <!-- 开场文字层：独立于卡片，只跟随位移不参与缩放，字号恒定 -->
-  <div class="intro-layer">
-    <div class="intro-hello"><span>你</span><span>好</span></div>
-    <div class="intro-welcome">欢迎来到<span class="hl">流雲</span>的创客空间</div>
-  </div>
-</div>
-
-<script>
-/* 管理端主页：壁纸取 content/theme.json 的 admin 字段 + 开场动画（与访客端同一套） */
-(function () {
-  "use strict";
-
-  fetch("/content/theme.json?t=" + Date.now()).then(function (r) {
-    if (!r.ok) throw new Error("theme");
-    return r.json();
-  }).then(function (t) {
-    var bg = document.querySelector(".bg");
-    if (bg && t && t.admin) bg.style.backgroundImage = 'url("' + t.admin + '")';
-  }).catch(function () {});
-
-  /* ---------- 开场动画 ----------
-   * 时间轴与访客端一致：
-   *   0.00s  卡片铺满全屏，「你好」逐字浮现
-   *   1.25s  「你好」缩小淡出，欢迎语淡入
-   *   2.50s  卡片弹性收缩回原位，文字层反向跟随
-   *   3.90s  气泡自下而上依次弹起
-   * 片头期间整页锁定，任意点击/触摸/Esc/Enter/空格打断
-   */
-  var introTimers = [];
-  var introRunning = false;
-
-  function introLater(fn, ms) { introTimers.push(window.setTimeout(fn, ms)); }
-  function clearIntroTimers() {
-    for (var i = 0; i < introTimers.length; i++) window.clearTimeout(introTimers[i]);
-    introTimers = [];
-  }
-
-  function skipIntro() {
-    if (!introRunning) return;
-    introRunning = false;
-    clearIntroTimers();
-
-    var card = document.querySelector(".jelly");
-    var layer = document.querySelector(".intro-layer");
-
-    if (card) {
-      card.style.transition = "transform .32s cubic-bezier(.3,1,.4,1), border-radius .28s ease";
-      card.style.transform = "";
-      card.style.borderRadius = "";
-      card.classList.remove("is-intro");
-      window.setTimeout(function () { card.style.transition = ""; }, 340);
-    }
-    if (layer) {
-      layer.classList.remove("on");
-      layer.style.transition = "none";
-      layer.style.transform = "";
-    }
-
-    document.body.classList.remove("intro-on");
-    document.documentElement.classList.remove("intro-on");
-    window.scrollTo(0, 0);
-    var bubbles = document.querySelector(".bubbles");
-    if (bubbles) bubbles.classList.add("play");
-  }
-
-  function playIntro() {
-    var card = document.querySelector(".jelly");
-    var layer = document.querySelector(".intro-layer");
-    var bubblesDone = function () {
-      var bs = document.querySelector(".bubbles");
-      if (bs) bs.classList.add("play");
-    };
-    if (!card || !layer) return;
-    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      bubblesDone();
-      return;
-    }
-
-    /* 开场动画每次会话只播一次：从内容页返回主页时不再重播，
-       否则每次回退都要等四秒，反被当成卡顿 */
-    try {
-      if (sessionStorage.getItem("adm-intro-played") === "1") {
-        bubblesDone();
-        return;
-      }
-      sessionStorage.setItem("adm-intro-played", "1");
-    } catch (e) {}
-
-    var hello = layer.querySelector(".intro-hello");
-    var welcome = layer.querySelector(".intro-welcome");
-    if (!hello || !welcome) return;
-
-    var r = card.getBoundingClientRect();
-    if (!r.width || !r.height) return;
-
-    var vw = window.innerWidth, vh = window.innerHeight;
-    var s = Math.max(vw / r.width, vh / r.height) * 1.02;
-    var dx = vw / 2 - (r.left + r.width / 2);
-    var dy = vh / 2 - (r.top + r.height / 2);
-    var move = "translate3d(" + dx + "px," + dy + "px,0)";
-
-    introRunning = true;
-    document.body.classList.add("intro-on");
-    document.documentElement.classList.add("intro-on");
-    card.classList.add("is-intro");
-
-    /* 圆角不做覆盖，保持 44px，任意缩放倍数下都是气泡形态 */
-    card.style.transformOrigin = "50% 50%";
-    card.style.transform = move + " scale(" + s + ")";
-
-    layer.style.transform = "translate3d(0,0,0)";
-    layer.classList.add("on");
-
-    introLater(function () { hello.classList.add("show"); }, 120);
-    introLater(function () { hello.classList.add("out"); }, 1250);
-    introLater(function () { welcome.classList.add("in"); }, 1700);
-
-    introLater(function () {
-      var ease = "cubic-bezier(.32,.9,.3,1)";
-      card.style.transition = "transform 1.35s " + ease;
-      card.style.transform = "translate3d(0,0,0) scale(1)";
-      layer.style.transition = "transform 1.35s " + ease + ", opacity .55s ease";
-      layer.style.transform = "translate3d(" + (-dx) + "px," + (-dy) + "px,0)";
-      layer.classList.remove("on");
-    }, 2500);
-
-    introLater(function () { card.classList.remove("is-intro"); }, 3750);
-
-    introLater(function () {
-      card.style.transition = "none";
-      card.style.transform = "";
-      layer.style.transition = "none";
-      layer.style.transform = "";
-      window.setTimeout(function () {
-        card.style.transition = "";
-        layer.style.transition = "";
-      }, 60);
-      document.body.classList.remove("intro-on");
-      document.documentElement.classList.remove("intro-on");
-      var bubbles = document.querySelector(".bubbles");
-      if (bubbles) bubbles.classList.add("play");
-      introRunning = false;
-    }, 3900);
-  }
-
-  function introGuard(e) {
-    if (!document.body.classList.contains("intro-on")) return;
-    if (e.cancelable) e.preventDefault();
-    e.stopPropagation();
-    skipIntro();
-  }
-  document.addEventListener("touchstart", introGuard, { capture: true, passive: false });
-  document.addEventListener("mousedown", introGuard, true);
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape" || e.key === "Enter" || e.key === " ") {
-      if (document.body.classList.contains("intro-on")) skipIntro();
-    }
-  }, true);
-
-  /* 同步直接启动：脚本在 body 末尾、首次绘制前执行，
-     卡片一上来就带放大变换，不会先闪一下原位再开始 */
-  playIntro();
-})();
-</script>
+<script src="/assets/js/admin-app.js?v=202611071430"></script>
 </body>
 </html>

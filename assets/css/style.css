@@ -1167,3 +1167,9 @@ body.pf-entering { animation: pf-fade-in .22s ease both; }
   html.pf-leaving body { transition: none; }
   body.pf-entering { animation: none; }
 }
+
+/* ---- 内容 / 壁纸两项：由 html.from-admin 控制显隐 ----
+   放两条在 HTML 里而不用 JS 后插，首帧就是正确项数，避免先少后多的闪动 */
+[data-nav-extra] { display: none; }
+html.from-admin [data-nav-extra] { display: block; }
+/* 访客端不该出现的入口，从管理端进来时才露出 */

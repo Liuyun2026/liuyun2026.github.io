@@ -146,29 +146,18 @@
   }
 
   /* 顶栏随来源切换形态：
-   *   纯访客访问 —— 首页 / 项目 / 笔记 / 资料 四项，首页指访客站
-   *   带 from=admin —— 补齐 内容 / 壁纸，成为管理端的六项，首页指管理端主页
-   * 每次 render 都会调用，函数自身保证幂等。
+   *   「内容 / 壁纸」两项在 HTML 里就有，由 html.from-admin 控制显隐，
+   *   因此首帧即为正确的四项或六项，不存在"先少后多"的闪动。
+   *   这里只负责把首页链接指向对应主页，并同步根元素标记。
    */
   function syncNavOrigin() {
-    var nav = document.getElementById("navLinks");
-    if (!nav) return;
-
     var admin = fromAdmin();
-    var extra = nav.querySelectorAll("[data-nav-extra]");
-    var haveExtra = extra.length > 0;
+    var nav = document.getElementById("navLinks");
 
-    if (admin && !haveExtra) {
-      nav.insertAdjacentHTML("beforeend",
-        '<a href="/manage/?from=admin" data-nav-extra="">内容</a>' +
-        '<a href="/theme/?from=admin" data-nav-extra="">壁纸</a>');
-    } else if (!admin && haveExtra) {
-      [].forEach.call(extra, function (a) { a.parentNode.removeChild(a); });
-    }
+    document.documentElement.classList.toggle("from-admin", admin);
+    if (nav) nav.classList.toggle("nav-links--admin", admin);
 
-    nav.classList.toggle("nav-links--admin", admin);
-
-    var home = nav.querySelector('a[data-nav=""]');
+    var home = nav && nav.querySelector('a[data-nav=""]');
     if (!home) return;
     if (admin) {
       home.setAttribute("href", "/admin/");

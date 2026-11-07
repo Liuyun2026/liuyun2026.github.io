@@ -337,3 +337,41 @@
   .theme-main { padding: 8px 14px 32px; }
   .theme-grid { grid-template-columns: 1fr; }
 }
+
+/* ============================================================================
+ * 单页应用视图容器
+ * home / manage / theme 三个视图在 #admView 内互相替换，切换不整页加载
+ * ========================================================================== */
+
+body { display: block; height: auto; overflow: auto; }
+
+.adm-view { position: relative; z-index: 1; }
+
+/* 主页视图：内容超出可滚动 */
+.adm-view--home { min-height: calc(100vh - 70px); }
+
+/* 编辑器视图：占满剩余高度，三栏各自内部滚动 */
+.adm-view--editor {
+  height: calc(100vh - 70px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.adm-view--editor .adm-main {
+  flex: 1;
+  min-height: 0;
+  padding-bottom: 16px;
+}
+
+/* 壁纸视图：内容区可滚动 */
+.adm-view--theme { min-height: calc(100vh - 70px); }
+.adm-view--theme .theme-main { padding-top: 14px; }
+
+@media (max-width: 1280px) {
+  .adm-view--editor { height: auto; overflow: visible; }
+  .adm-view--editor .adm-main { display: grid; grid-template-columns: 300px minmax(0, 1fr); overflow: visible; }
+}
+
+@media (max-width: 860px) {
+  .adm-view--editor .adm-main { display: block; padding-left: 14px; padding-right: 14px; }
+}

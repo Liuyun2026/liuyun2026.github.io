@@ -89,6 +89,8 @@
 
     var a = e.target && e.target.closest ? e.target.closest("a[href]") : null;
     if (!a) return;
+    /* 带 data-adm 的是单页应用内部视图切换，不归这里管 */
+    if (a.hasAttribute("data-adm")) return;
     if (a.target && a.target !== "_self") return;
     if (a.hasAttribute("download")) return;
 
