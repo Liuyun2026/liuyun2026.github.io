@@ -1355,7 +1355,8 @@
     var it = themeHistory[i];
     if (!it) return;
     themeState[historyTarget] = it.url;
-    localPreview[historyTarget] = "";
+    /* 未发布的图只有本地 object URL，正式地址要等发布后才可访问 */
+    localPreview[historyTarget] = it.thumb || "";
     themeDirty = true;
     refreshPreview(historyTarget);
     applyThemeLocal();
