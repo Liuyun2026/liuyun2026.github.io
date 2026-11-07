@@ -1647,11 +1647,12 @@
 
     root.style.overflow = "hidden";
 
+    /* 淡出只做透明度。给旧视图加位移会把它推出容器右缘，
+       仍可能撑开文档宽度、带出横向滚动条；滑动交给新视图从侧面进来 */
     var b0 = box();
     if (b0) {
-      b0.style.transition = "opacity .17s ease, transform .17s ease";
+      b0.style.transition = "opacity .17s ease";
       b0.style.opacity = "0";
-      b0.style.transform = "translateX(" + outX + "px)";
     }
 
     if (reduceMotion()) {
