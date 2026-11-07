@@ -1,13 +1,13 @@
 [
   {
     "id": "zynq7020",
-    "title": "Zynq-7020 三合一硬件平台",
-    "subtitle": "XC7Z020-CLG400 · PS + PL + 模拟前端一体板",
+    "title": "Zynq-7020 核心板",
+    "subtitle": "",
     "category": "硬件",
     "status": "进行中",
     "year": "2026",
     "featured": true,
-    "summary": "把处理系统、可编程逻辑和高速模拟前端压到一张板上：DDR3、eMMC、QSPI、千兆以太网、14 位 ADC 与高速 DAC，配一条从 12 V 起算的完整电源树。",
+    "summary": "XC7Z020-2CLG400核心板：包括哦DDR3*2、eMMC、QSPI、千兆以太网， 以及从12 V 开始的完整电源树",
     "specs": [
       [
         "主控",
@@ -24,10 +24,6 @@
       [
         "存储",
         "DDR3 · QSPI Flash · eMMC KLM8G1GETF-B041"
-      ],
-      [
-        "模拟前端",
-        "AD9251（14 位 ADC）· DAC904E"
       ],
       [
         "以太网",
@@ -47,7 +43,7 @@
       ],
       [
         "EDA",
-        "嘉立创 EDA"
+        "KiCad"
       ]
     ],
     "tags": [
