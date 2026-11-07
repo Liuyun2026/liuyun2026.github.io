@@ -322,7 +322,9 @@
   var curType = "projects";
   var curIndex = -1;
 
-  var PARTS = ["meta", "projects", "notes", "files", "journal"];
+  /* 编辑器只负责四个列表文件。meta.json 由访客端读取、单独维护，
+     编辑器没有对应表单，保存时不得重写，否则会被数组兜底写成 [] */
+  var PARTS = ["projects", "notes", "files", "journal"];
 
   function manageHtml() {
     return '<div class="adm-main">' +
@@ -1015,10 +1017,10 @@
         return r.json();
       });
     })).then(function (arr) {
-      content = { meta: arr[0], projects: arr[1], notes: arr[2], files: arr[3], journal: arr[4] };
-      // 兜底：老数据或异常响应缺字段时补空数组，避免切标签报错
-      PARTS.forEach(function (k) {
-        if (!Array.isArray(content[k])) content[k] = [];
+      /* 按 PARTS 顺序装入，缺字段或响应异常时补空数组，避免切标签报错 */
+      content = {};
+      PARTS.forEach(function (k, i) {
+        content[k] = Array.isArray(arr[i]) ? arr[i] : [];
       });
       renderList();
       if (content[curType] && content[curType].length) select(0);

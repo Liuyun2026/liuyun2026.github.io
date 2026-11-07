@@ -972,7 +972,17 @@
     });
   }))
     .then(function (arr) {
-      S = { meta: arr[0], projects: arr[1], notes: arr[2], files: arr[3], journal: arr[4], theme: arr[5] };
+      /* meta 是对象而非数组；数据异常时补齐默认值，
+         保证站点名、状态条与 GitHub 主页链接始终可用 */
+      var m = (arr[0] && !Array.isArray(arr[0]) && typeof arr[0] === "object") ? arr[0] : {};
+      S = {
+        meta: {
+          name: m.name || "流雲",
+          status: m.status || "",
+          github: m.github || "https://github.com/Liuyun2026"
+        },
+        projects: arr[1], notes: arr[2], files: arr[3], journal: arr[4], theme: arr[5]
+      };
       applyWallpaper(S.theme && S.theme.guest);
       initStatic();
       render();
