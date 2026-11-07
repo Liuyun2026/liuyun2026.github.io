@@ -49,6 +49,12 @@ html {
    出现或消失；宽度一变，居中的顶栏与 cover 壁纸就会横向跳动。 */
 html {
   scrollbar-gutter: stable;
+  /* 必须显式写 overflow-x。html 为 visible 时，body 的 overflow-x: hidden
+     会传播到视口、body 自身反而不再裁剪；#admView 切换时的 translateX
+     溢出就会撑出横向滚动条，挤掉 15px 视口高度，fixed 的壁纸层跟着变矮，
+     cover 重新缩放——表现就是壁纸上下伸缩。显式设成 hidden 后，裁剪由
+     body 自己承担，不会再有横向滚动条。 */
+  overflow-x: hidden;
 }
 @supports not (scrollbar-gutter: stable) {
   html { overflow-y: scroll; }
