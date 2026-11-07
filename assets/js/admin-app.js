@@ -1339,6 +1339,15 @@
       entries.push({ path: "content/theme.json", mode: "100644", type: "blob", sha: cfg.sha });
 
       var tree = await ghJson("/git/trees", "POST", { base_tree: base.tree.sha, tree: entries });
+
+      /* 新树与基准树相同，说明既没传新图、配置也和远端一致。
+         这种情况不能报「已发布」：仓库里其实什么都没写，用户会以为换上了 */
+      if (tree.sha === base.tree.sha) {
+        msg("没有实际改动：选中的就是当前这张壁纸，换一张再保存", "ok");
+        if (btn) btn.disabled = false;
+        return;
+      }
+
       var commit = await ghJson("/git/commits", "POST", {
         message: "壁纸更新：" + new Date().toISOString().slice(0, 16).replace("T", " "),
         tree: tree.sha,
@@ -1361,6 +1370,12 @@
   function useHistory(i) {
     var it = themeHistory[i];
     if (!it) return;
+    /* 点到的就是当前这张：不置脏，避免保存时写出一棵与原树相同的空提交。
+       带 thumb 的是尚未发布的本地图，仍需走一次提交 */
+    if (it.url === themeState[historyTarget] && !it.thumb) {
+      msg("这张已经是当前壁纸，换一张再保存", "ok");
+      return;
+    }
     themeState[historyTarget] = it.url;
     /* 未发布的图只有本地 object URL，正式地址要等发布后才可访问 */
     localPreview[historyTarget] = it.thumb || "";
@@ -1448,11 +1463,15 @@
         }
 
         if (act === "upload") {
+          /* input 先挂进文档再点：脱离文档的 input 在部分浏览器上不弹选择框 */
           var inp = document.createElement("input");
           inp.type = "file";
           inp.accept = "image/*";
+          inp.style.display = "none";
+          document.body.appendChild(inp);
           inp.onchange = function () {
             if (inp.files.length) uploadWallpaper(side, inp.files[0]);
+            if (inp.parentNode) inp.parentNode.removeChild(inp);
           };
           inp.click();
         }
