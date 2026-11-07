@@ -115,7 +115,7 @@ h1, h2, h3, h4 { margin: 0; font-weight: 640; line-height: 1.32; letter-spacing:
   pointer-events: none;
   transition: opacity .45s ease, transform .45s ease;
 }
-body.intro-on .nav {
+html.intro-on .nav {
   opacity: 0;
   visibility: hidden;
   transform: translateY(-12px);
@@ -456,13 +456,18 @@ body.intro-on .nav {
   transition: transform .5s var(--ease), box-shadow .5s var(--ease), border-color .3s;
   animation: none;
 }
+/* 片头待播：卡片在首帧就隐藏，等 JS 算好铺满缩放再一次性显示，
+   避免"正常尺寸 → 突然放大"的闪动。is-intro 一上就可见，中间不留空档 */
+html.intro-pending .jelly { opacity: 0; }
+html.intro-pending .jelly.is-intro { opacity: 1; }
+
 /* 卡片落定后由 JS 加上 .play，气泡自下而上依次弹起 */
-body.intro-on .bubbles,
-body.intro-on footer { visibility: hidden; }
+html.intro-on .bubbles,
+html.intro-on footer { visibility: hidden; }
 
 /* 片头期间锁死整页：不能滚动、不能双指缩放、不能滑动切页 */
 html.intro-on,
-body.intro-on {
+html.intro-on {
   overflow: hidden;
   height: 100%;
   touch-action: none;
@@ -470,7 +475,7 @@ body.intro-on {
 }
 
 /* 跳过提示 */
-body.intro-on::after {
+html.intro-on::after {
   content: "轻触跳过";
   position: fixed;
   left: 50%;

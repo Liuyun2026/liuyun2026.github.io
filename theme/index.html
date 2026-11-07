@@ -9,9 +9,30 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%230B0F16'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='15' font-weight='bold' fill='%237FB2FF' text-anchor='middle'%3EM%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="/assets/css/style.css">
 <link rel="stylesheet" href="/assets/css/admin.css">
-<script src="/assets/js/pageflow.js?v=202611071753"></script>
-<script>window.__BUILD__="202611071753";</script>
-<script src="/assets/js/vercheck.js?v=202611071753"></script>
+<script>
+/* 首屏判定：管理端主页播开场动画时，第一次绘制前就藏好顶栏并预置卡片状态，
+   避免正常尺寸的卡片先画出来再放大铺满（那一下闪动）。
+   本脚本位于 head，document.body 尚不存在，标记只加在 documentElement 上。 */
+(function () {
+  try {
+    var p = location.pathname.replace(/\/+$/, "") || "/";
+    if (p !== "/admin") return;
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    document.documentElement.classList.add("intro-on", "intro-pending");
+
+    window.setTimeout(function () {
+      var de = document.documentElement;
+      if (de.classList.contains("intro-pending") && !document.querySelector(".jelly.is-intro")) {
+        de.classList.remove("intro-pending", "intro-on");
+      }
+    }, 2500);
+  } catch (e) {}
+})();
+</script>
+<script src="/assets/js/pageflow.js?v=202611071816"></script>
+<script>window.__BUILD__="202611071816";</script>
+<script src="/assets/js/vercheck.js?v=202611071816"></script>
 </head>
 <body>
 
@@ -45,6 +66,6 @@
 <!-- 视图容器：home / manage / theme 三个视图在此互相替换 -->
 <main class="adm-view" id="admView"></main>
 
-<script src="/assets/js/admin-app.js?v=202611071753"></script>
+<script src="/assets/js/admin-app.js?v=202611071816"></script>
 </body>
 </html>

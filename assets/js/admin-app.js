@@ -76,7 +76,7 @@
 
   function applyAdminWallpaper(url) {
     if (!url) return;
-    if (document.body.classList.contains("intro-on")) {
+    if (document.documentElement.classList.contains("intro-on")) {
       pendingWallpaper = url;
       return;
     }
@@ -191,8 +191,7 @@
   }
 
   function introOff() {
-    document.body.classList.remove("intro-on");
-    document.documentElement.classList.remove("intro-on");
+    document.documentElement.classList.remove("intro-on", "intro-pending");
     /* 片头结束，补上等待中的壁纸 */
     flushWallpaper();
   }
@@ -234,6 +233,9 @@
 
     if (short) { introOff(); done(); return; }
 
+    /* 无论播不播，先撤掉待播状态：卡片此刻要么由 is-intro 接管，要么正常显示 */
+    document.documentElement.classList.remove("intro-pending");
+
     var hello = layer.querySelector(".intro-hello");
     var welcome = layer.querySelector(".intro-welcome");
     if (!hello || !welcome) { introOff(); done(); return; }
@@ -248,7 +250,6 @@
     var move = "translate3d(" + dx + "px," + dy + "px,0)";
 
     introRunning = true;
-    document.body.classList.add("intro-on");
     document.documentElement.classList.add("intro-on");
     card.classList.add("is-intro");
 
@@ -293,7 +294,7 @@
   function mountHome() {
     /* 动画结束前点击任意处可跳过 */
     var guard = function (e) {
-      if (!document.body.classList.contains("intro-on")) return;
+      if (!document.documentElement.classList.contains("intro-on")) return;
       if (e.cancelable) e.preventDefault();
       e.stopPropagation();
       skipIntro();

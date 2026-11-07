@@ -658,8 +658,7 @@
 
   /* 解锁页面：顶栏、页脚恢复显示 */
   function introOff() {
-    document.body.classList.remove("intro-on");
-    document.documentElement.classList.remove("intro-on");
+    document.documentElement.classList.remove("intro-on", "intro-pending");
     /* 片头结束，补上等待中的壁纸 */
     if (typeof flushWallpaper === "function") flushWallpaper();
   }
@@ -699,6 +698,9 @@
       if (bs) bs.classList.add("play");
     };
     if (!card || !layer) { introOff(); done(); return; }
+
+    /* 撤掉待播状态；若接着播片头，is-intro 会在同一帧接管显示 */
+    document.documentElement.classList.remove("intro-pending");
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       introOff(); done(); return;
     }
@@ -717,7 +719,6 @@
     var move = "translate3d(" + dx + "px," + dy + "px,0)";
 
     introRunning = true;
-    document.body.classList.add("intro-on");
     document.documentElement.classList.add("intro-on");
     card.classList.add("is-intro");
 
@@ -757,8 +758,7 @@
         card.style.transition = "";
         layer.style.transition = "";
       }, 60);
-      document.body.classList.remove("intro-on");
-      document.documentElement.classList.remove("intro-on");
+        document.documentElement.classList.remove("intro-on");
       var bubbles = document.querySelector(".bubbles");
       if (bubbles) bubbles.classList.add("play");
       introRunning = false;
@@ -845,7 +845,7 @@
 
     document.addEventListener("touchstart", function (e) {
       if (e.touches.length !== 1) { tracking = false; return; }
-      if (document.body.classList.contains("intro-on")) { tracking = false; return; }
+      if (document.documentElement.classList.contains("intro-on")) { tracking = false; return; }
       /* 排除可横向滚动的内容与输入框，否则会抢走手势 */
       var t = e.target;
       if (t && t.closest && t.closest("pre, input, textarea, .hint")) { tracking = false; return; }
@@ -886,7 +886,7 @@
 
   function applyWallpaper(url) {
     if (!url) return;
-    if (document.body.classList.contains("intro-on")) {
+    if (document.documentElement.classList.contains("intro-on")) {
       pendingWallpaper = url;
       return;
     }
@@ -931,7 +931,7 @@
 
   /* 片头期间整页锁定，任意点击即跳过 */
   function introGuard(e) {
-    if (!document.body.classList.contains("intro-on")) return;
+    if (!document.documentElement.classList.contains("intro-on")) return;
     if (e.cancelable) e.preventDefault();
     e.stopPropagation();
     skipIntro();
@@ -940,7 +940,7 @@
   document.addEventListener("mousedown", introGuard, true);
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape" || e.key === "Enter" || e.key === " ") {
-      if (document.body.classList.contains("intro-on")) skipIntro();
+      if (document.documentElement.classList.contains("intro-on")) skipIntro();
     }
   }, true);
 

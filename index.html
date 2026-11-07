@@ -9,24 +9,27 @@
 <meta name="theme-color" content="#070910">
 <link rel="preload" as="image" href="/assets/img/wallpaper.jpg">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237FB2FF'/%3E%3Cstop offset='1' stop-color='%234FE3C1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='%230B0F16'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='15' font-weight='bold' fill='url(%23g)' text-anchor='middle'%3EL%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="/assets/css/style.css?v=202611071753">
-<script src="/assets/js/pageflow.js?v=202611071753"></script>
-<script>window.__BUILD__="202611071753";</script>
-<script src="/assets/js/vercheck.js?v=202611071753"></script>
+<link rel="stylesheet" href="/assets/css/style.css?v=202611071816">
+<script src="/assets/js/pageflow.js?v=202611071816"></script>
+<script>window.__BUILD__="202611071816";</script>
+<script src="/assets/js/vercheck.js?v=202611071816"></script>
 </head>
 <body>
 
 <script>
-/* 首屏判定，全部在第一次绘制前完成，避免任何"先少后多"的闪动：
-   1. 首页且本会话未播过开场 → 先藏顶栏与页脚
+/* 首屏判定，全部在第一次绘制前完成：
+   1. 首页播开场动画 → 先藏顶栏与页脚，并把卡片预置为「待播」状态，
+      避免正常尺寸的卡片先画出来、再被放大铺满（那一下闪动）
    2. 带 from=admin（从管理端进入）→ 顶栏直接以六项形态出现，
-      由 CSS 控制显隐，不需要等 JS 插入，因此不会先显示四项再补两项 */
+      由 CSS 控制显隐，不需要等 JS 插入，因此不会先显示四项再补两项
+
+   注意：本脚本位于 head，此时 document.body 还不存在，
+   所有标记只能加在 documentElement 上，CSS 一律用 html.* 选择器匹配。 */
 (function () {
   try {
     var p = location.pathname.replace(/\/+$/, "") || "/";
     var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    /* 从管理端进入：顶栏直接按管理端形态绘制 */
     if (/(^|[?&])from=admin(&|$)/.test(location.search)) {
       document.documentElement.classList.add("from-admin");
     }
@@ -34,8 +37,16 @@
     if (p !== "/") return;
     if (location.hash && location.hash !== "#/") return;
     if (reduce) return;
-    document.documentElement.classList.add("intro-on");
-    document.body.classList.add("intro-on");
+
+    document.documentElement.classList.add("intro-on", "intro-pending");
+
+    /* 兜底：动画若因异常没启动，2.5 秒后强制放出卡片，避免页面空白 */
+    window.setTimeout(function () {
+      var de = document.documentElement;
+      if (de.classList.contains("intro-pending") && !document.querySelector(".jelly.is-intro")) {
+        de.classList.remove("intro-pending", "intro-on");
+      }
+    }, 2500);
   } catch (e) {}
 })();
 </script>
@@ -77,6 +88,6 @@
   </div>
 </footer>
 
-<script src="/assets/js/app.js?v=202611071753"></script>
+<script src="/assets/js/app.js?v=202611071816"></script>
 </body>
 </html>
