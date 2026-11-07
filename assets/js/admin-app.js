@@ -118,10 +118,11 @@
     if (!s) return;
     s.textContent = text;
     s.classList.toggle("on", !!on);
-    /* 顶栏按文案判定；主页胶囊按令牌判定，未填令牌时一律红点 */
-    var box = s.closest ? s.closest(".nav-status") : null;
-    if (box) box.classList.toggle("is-off", text === "未连接");
+    /* 连接状态统一由令牌是否存在决定：所有绿点（顶栏 .nav-status + 首页胶囊）
+       未连接即红，不再依赖「未连接」文案，避免首页显示「管理端」时绿点不跟状态变红 */
     var connected = !!token();
+    var box = s.closest ? s.closest(".nav-status") : null;
+    if (box) box.classList.toggle("is-off", !connected);
     [].forEach.call(document.querySelectorAll(".jelly-meta .pill .dot"), function (d) {
       d.classList.toggle("is-off", !connected);
     });
