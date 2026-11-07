@@ -129,6 +129,34 @@
 
   function pad2(n) { return n < 10 ? "0" + n : "" + n; }
 
+  /* ---------- 来源标记 ----------
+   * 从管理端点「项目 / 笔记 / 资料」进来时地址带 ?from=admin，
+   * 此时顶栏的「首页」指回管理端主页，其余情况指访客首页。
+   * 站内切换页面时要把标记带上，否则跳一次就丢了。
+   */
+  function fromAdmin() {
+    return /(^|[?&])from=admin(&|$)/.test(location.search);
+  }
+
+  function withOrigin(path) {
+    if (!fromAdmin()) return path;
+    /* 已经带标记就不再重复追加 */
+    if (/(^|[?&])from=admin(&|$)/.test(path)) return path;
+    return path + (path.indexOf("?") >= 0 ? "&" : "?") + "from=admin";
+  }
+
+  function syncHomeLink() {
+    var home = document.querySelector('#navLinks a[data-nav=""]');
+    if (!home) return;
+    if (fromAdmin()) {
+      home.setAttribute("href", "/admin/");
+      home.setAttribute("title", "回管理端主页");
+    } else {
+      home.setAttribute("href", "/");
+      home.removeAttribute("title");
+    }
+  }
+
   /* 状态色：进行中 → 黄，锁定/在用 → 绿，开源/发布 → 蓝 */
   function badgeClass(status) {
     var s = status || "";
@@ -533,6 +561,8 @@
   function navigate(target, dir) {
     if (!target || target === currentPath() || transitioning) return;
 
+    /* 带上来源标记，站内转一圈后「首页」仍知道该回管理端 */
+    var url = withOrigin(target);
     var next = dir > 0;
     transitioning = true;
 
@@ -541,10 +571,10 @@
     view.style.transform = "translateX(" + (next ? -22 : 22) + "px)";
 
     window.setTimeout(function () {
-      try { history.pushState({ path: target }, "", target); } catch (err) { location.hash = target; }
+      try { history.pushState({ path: target }, "", url); } catch (err) { location.hash = target; }
       render();
       /* 地址先变、标题后设，历史条目的标题要再同步一次才不会记成上一页 */
-      try { history.replaceState({ path: target }, document.title, target); } catch (err) {}
+      try { history.replaceState({ path: target }, document.title, url); } catch (err) {}
 
       view.style.transition = "none";
       view.style.transform = "translateX(" + (next ? 22 : -22) + "px)";
@@ -703,6 +733,9 @@
       a.classList.toggle("on", a.getAttribute("data-nav") === key);
     });
 
+    /* 顶栏「首页」按来源指路：从管理端进来的回管理端主页 */
+    syncHomeLink();
+
     window.scrollTo(0, 0);
 
     /* 同步启动：内容刚写入 DOM、尚未绘制，此时上加缩放变换不会闪出原位 */
@@ -749,6 +782,13 @@
     var n = i + dir;
     var order = pageOrder();
     if (n < 0 || n >= order.length) return;
+
+    /* 滑到「首页」且来自管理端时，跳管理端主页（独立页面，只能整页跳转） */
+    if (n === 0 && fromAdmin()) {
+      location.href = "/admin/";
+      return;
+    }
+
     var target = "/" + order[n];
     navigate(target.replace(/\/$/, "") || "/", dir);
   }
