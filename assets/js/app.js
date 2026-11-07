@@ -517,6 +517,39 @@
     };
   }
 
+  /* ---------- 日志与碎碎念 ----------
+   * 一条一项：日期 + 心情 + 正文（短文本，支持换行），按日期倒序
+   */
+  function journalRow(it) {
+    var mood = it.mood ? '<span class="jmark">' + esc(it.mood) + "</span>" : "";
+    var text = esc(it.text || "").replace(/\n/g, "<br>");
+    return '<div class="jrow">' +
+      '<div class="jwhen"><span class="jdate">' + esc(it.date || "") + "</span>" + mood + "</div>" +
+      '<div class="jtext">' + (text || '<span class="hintline">（空）</span>') + "</div>" +
+    "</div>";
+  }
+
+  function viewJournal() {
+    var all = (S.journal || []).slice().sort(function (a, b) {
+      return (b.date || "").localeCompare(a.date || "");
+    });
+    return {
+      title: S.meta.name + "的日志",
+      html: '<div class="wrap">' +
+        '<section class="block">' +
+          secHead("JOURNAL", "日志与碎碎念", all.length + " 条") +
+          '<div class="jlist">' +
+            (all.length ? all.map(journalRow).join("") : '<div class="empty">还没有记录</div>') +
+          "</div>" +
+          '<div class="hint">' +
+            "随手记的短动态，一条一个日期。在管理端「内容」的日志标签里添加，保存后即发布。" +
+          "</div>" +
+        "</section>" +
+      "</div>",
+      mount: function () {}
+    };
+  }
+
   /* ---------- 路由 ---------- */
 
   function currentPath() {
@@ -536,6 +569,7 @@
     if (seg === "notes") return viewNotes();
     if (seg === "note") return viewNote(arg);
     if (seg === "files") return viewFiles();
+    if (seg === "journal") return viewJournal();
     return viewNotFound();
   }
 
@@ -778,7 +812,7 @@
    * 详情页（#/note/xxx、#/project/xxx）不参与滑动，避免和返回逻辑冲突
    */
   function pageOrder() {
-    return ["", "projects", "notes", "files"];
+    return ["", "journal", "projects", "notes", "files"];
   }
   var slideClass = "";
 
@@ -887,7 +921,7 @@
 
   /* 内容按类别拆在 content/ 目录下，与代码区分离。
      请求带时间戳：绕开浏览器与 CDN 对 JSON 的缓存，保存后刷新立即生效 */
-  var PARTS = ["meta", "projects", "notes", "files", "theme"];
+  var PARTS = ["meta", "projects", "notes", "files", "journal", "theme"];
   var bust = "?t=" + Date.now();
   Promise.all(PARTS.map(function (k) {
     return fetch("/content/" + k + ".json" + bust).then(function (res) {
@@ -896,7 +930,7 @@
     });
   }))
     .then(function (arr) {
-      S = { meta: arr[0], projects: arr[1], notes: arr[2], files: arr[3], theme: arr[4] };
+      S = { meta: arr[0], projects: arr[1], notes: arr[2], files: arr[3], journal: arr[4], theme: arr[5] };
       applyWallpaper(S.theme && S.theme.guest);
       initStatic();
       render();

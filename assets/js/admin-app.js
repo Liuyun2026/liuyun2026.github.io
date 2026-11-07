@@ -284,7 +284,7 @@
   var curType = "projects";
   var curIndex = -1;
 
-  var PARTS = ["meta", "projects", "notes", "files"];
+  var PARTS = ["meta", "projects", "notes", "files", "journal"];
 
   function manageHtml() {
     return '<div class="adm-main">' +
@@ -298,6 +298,7 @@
             '<button data-type="projects" class="on">项目</button>' +
             '<button data-type="notes">笔记</button>' +
             '<button data-type="files">资料</button>' +
+            '<button data-type="journal">日志</button>' +
           '</div>' +
           '<div id="list"></div>' +
           '<button class="adm-add" id="addBtn">+ 新建一条</button>' +
@@ -335,9 +336,14 @@
   function items() { return (content && content[curType]) || []; }
 
   function titleOf(item) {
+    if (curType === "journal") {
+      var t = String(item.text || "").replace(/\s+/g, " ").trim();
+      return t ? (t.length > 24 ? t.slice(0, 24) + "…" : t) : (item.date || "（空）");
+    }
     return item.title || item.name || item.id || "（未命名）";
   }
   function subOf(item) {
+    if (curType === "journal") return item.date || "";
     if (curType === "files") return item.kind || "";
     return item.category || item.date || "";
   }
@@ -667,6 +673,9 @@
       html += field("摘要", "summary", it.summary, "", "area");
       html += bodyField(it, "支持 ## 标题、- 列表、> 引用、表格、图片、链接，以及反引号代码");
       html += attachPanel();
+    } else if (curType === "journal") {
+      html += '<div class="adm-row">' + field("日期", "date", it.date) + field("心情 / 标记（可选）", "mood", it.mood, "如：好嗨 / 一般 / 累") + "</div>";
+      html += field("内容", "text", it.text, "随手记的短文本，支持换行，站点按日期倒序展示", "area");
     } else {
       html += field("名称", "name", it.name);
       html += '<div class="adm-row">' +
@@ -763,6 +772,8 @@
       blank = { id: "new-" + Date.now(), title: "新项目", subtitle: "", category: "硬件", status: "进行中", year: "2026", summary: "", specs: [], tags: [], links: [] };
     } else if (curType === "notes") {
       blank = { id: "note-" + Date.now(), title: "新笔记", date: "", tags: [], summary: "", body: [""] };
+    } else if (curType === "journal") {
+      blank = { id: "j-" + Date.now(), date: new Date().toISOString().slice(0, 10), mood: "", text: "" };
     } else {
       blank = { name: "新资料", kind: "other", note: "", url: "", size: "" };
     }
@@ -918,7 +929,11 @@
         return r.json();
       });
     })).then(function (arr) {
-      content = { meta: arr[0], projects: arr[1], notes: arr[2], files: arr[3] };
+      content = { meta: arr[0], projects: arr[1], notes: arr[2], files: arr[3], journal: arr[4] };
+      // 兜底：老数据或异常响应缺字段时补空数组，避免切标签报错
+      PARTS.forEach(function (k) {
+        if (!Array.isArray(content[k])) content[k] = [];
+      });
       renderList();
       if (content[curType] && content[curType].length) select(0);
     }).catch(function () {

@@ -110,8 +110,12 @@
     leaving = true;
     prefetch(u);
 
-    /* 浏览器支持跨文档视图过渡时，过渡由原生完成：直接跳，不叠加自家淡出 */
-    if (hasVT() || reduceMotion()) { location.href = u.href; return; }
+    /* 进入带开场动画的页面时，原生过渡的旧页快照会与新动画叠加
+       （看起来"你好"播两次、第一次带顶栏），改用自家淡出让动画独占 */
+    var toIntro = norm(u.pathname) === "/" || norm(u.pathname) === "/admin";
+
+    if (hasVT() && !toIntro) { location.href = u.href; return; }
+    if (reduceMotion()) { location.href = u.href; return; }
 
     try { sessionStorage.setItem(NAV_KEY, "1"); } catch (err) {}
 
@@ -120,6 +124,15 @@
     document.documentElement.classList.add("pf-leaving");
     window.setTimeout(go, LEAVE_MS);
   }, true);
+
+  /* 原生过渡触达带开场动画的页面时（前进/后退/刷新等非点击导航），同样跳过 */
+  document.addEventListener("pageswap", function (e) {
+    if (!e.viewTransition) return;
+    try {
+      var to = norm(new URL(e.viewTransition.destinationURL || "", location.href).pathname);
+      if (to === "/" || to === "/admin") e.viewTransition.skipTransition();
+    } catch (err) {}
+  });
 
   /* ---- 3. 进入时淡入 ---- */
   function enter() {
