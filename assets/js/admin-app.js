@@ -405,19 +405,46 @@
   }
 
   function field(label, key, val, hint, type) {
-    var input;
-    if (type === "area") {
-      input = '<textarea data-k="' + key + '">' + esc(val || "") + "</textarea>";
-    } else if (type === "select") {
-      input = '<select data-k="' + key + '">' +
-        ["硬件", "软件", "文档"].map(function (o) {
-          return '<option' + (o === val ? " selected" : "") + ">" + o + "</option>";
-        }).join("") + "</select>";
-    } else {
-      input = '<input data-k="' + key + '" value="' + esc(val || "") + '">';
-    }
+    var input = type === "area"
+      ? '<textarea data-k="' + key + '">' + esc(val || "") + "</textarea>"
+      : '<input data-k="' + key + '" value="' + esc(val || "") + '">';
     return '<div class="adm-field"><label>' + esc(label) + "</label>" + input +
       (hint ? '<div class="hintline">' + hint + "</div>" : "") + "</div>";
+  }
+
+  /* 分类与状态：下拉给常用值，下面的输入框可直接改；最终以输入框为准 */
+  function choiceField(label, key, val, options) {
+    var v = String(val || "");
+    var opts = options.map(function (o) {
+      return '<option' + (o === v ? " selected" : "") + '>' + esc(o) + "</option>";
+    }).join("");
+    if (v && options.indexOf(v) < 0) {
+      opts = '<option data-custom="1" selected>' + esc(v) + "</option>" + opts;
+    }
+    return '<div class="adm-field adm-choice"><label>' + esc(label) + "</label>" +
+      '<select data-pick="' + key + '">' + opts + "</select>" +
+      '<input data-manual="' + key + '" data-k="' + key + '" value="' + esc(v) + '" placeholder="或手动填写">' +
+      "</div>";
+  }
+
+  /* 手填值回写下拉：命中预设就选中，否则临时补一个同值选项 */
+  function syncPick(el) {
+    var k = el.getAttribute("data-k");
+    var sel = el.parentNode && el.parentNode.querySelector("[data-pick]");
+    if (!sel || sel.getAttribute("data-pick") !== k) return;
+    var v = el.value;
+    var custom = sel.querySelector("option[data-custom]");
+    if (custom) custom.parentNode.removeChild(custom);
+    if (!v) return;
+    var known = [].some.call(sel.options, function (o) { return o.value === v; });
+    if (!known) {
+      var opt = document.createElement("option");
+      opt.setAttribute("data-custom", "1");
+      opt.value = v;
+      opt.textContent = v;
+      sel.appendChild(opt);
+    }
+    sel.value = v;
   }
 
   function bodyField(it, hint) {
@@ -747,7 +774,10 @@
     if (curType === "projects") {
       html += '<div class="adm-row">' + field("标题", "title", it.title) + field("标识 id（英文，唯一）", "id", it.id) + "</div>";
       html += field("副标题", "subtitle", it.subtitle);
-      html += '<div class="adm-row">' + field("分类", "category", it.category, "", "select") + field("状态", "status", it.status) + "</div>";
+      html += '<div class="adm-row">' +
+        choiceField("分类", "category", it.category, ["硬件", "软件", "文档"]) +
+        choiceField("状态", "status", it.status, ["进行中", "已完成", "计划中", "开源", "搁置"]) +
+      "</div>";
       html += field("摘要", "summary", it.summary, "显示在列表页和详情页开头", "area");
       html += field("标签", "tags", (it.tags || []).join("、"), "用顿号或逗号分隔");
       html += field("参数表", "specs", (it.specs || []).map(function (r) { return r[0] + " | " + r[1]; }).join("\n"),
@@ -779,8 +809,19 @@
     wrap.innerHTML = html;
 
     Array.prototype.forEach.call(wrap.querySelectorAll("[data-k]"), function (el) {
-      el.addEventListener("input", function () { applyField(el); });
-      el.addEventListener("change", function () { applyField(el); });
+      el.addEventListener("input", function () { applyField(el); syncPick(el); });
+      el.addEventListener("change", function () { applyField(el); syncPick(el); });
+    });
+
+    /* 选下拉即写入下面的手动框，后续仍可继续改文字 */
+    [].forEach.call(wrap.querySelectorAll("[data-pick]"), function (sel) {
+      sel.addEventListener("change", function () {
+        var k = sel.getAttribute("data-pick");
+        var manual = wrap.querySelector('[data-manual="' + k + '"]');
+        if (!manual) return;
+        manual.value = sel.value;
+        manual.dispatchEvent(new Event("input", { bubbles: true }));
+      });
     });
 
     /* 正文工具栏 */
