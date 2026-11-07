@@ -778,7 +778,9 @@
       layer.classList.remove("on");
     }, 2500);
 
-    introLater(function () { card.classList.remove("is-intro"); }, 3750);
+    /* 收缩 2500ms 起、1.35s 后即 3850ms 结束；等归位后再切回真玻璃，
+       否则玻璃质感会在收缩未完时突然打开，看起来像光泽延迟加载 */
+    introLater(function () { card.classList.remove("is-intro"); }, 3880);
 
     introLater(function () {
       card.style.transition = "none";

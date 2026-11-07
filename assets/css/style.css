@@ -283,8 +283,8 @@ html.intro-on .nav {
   width: 84%;
   height: 90%;
   border-radius: 50%;
-  background: radial-gradient(ellipse at center, rgba(255, 255, 255, .3), rgba(255, 255, 255, .05) 45%, transparent 68%);
-  filter: blur(18px);
+  /* 渐变本身已足够柔和，不再叠 blur：铺满放大时模糊半径会被同步放大，代价高且会变硬 */
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, .26), rgba(255, 255, 255, .06) 42%, transparent 72%);
   pointer-events: none;
 }
 /* 底部反光 */
@@ -361,16 +361,16 @@ html.intro-on .nav {
   transition: none;
 }
 /* 铺满时不用 backdrop-filter：放大后的元素每帧都要重算整屏模糊，直接卡死。
-   改用不透明的深色渐变顶替，收缩到位前再切回真玻璃，肉眼几乎看不出接缝 */
+   改用烘焙好的深色渐变顶替，但弧形高光、顶部亮边、底部反光全部保留，
+   与静态首屏层 .intro-boot 用同一套配方，淡出交接时光泽不出现、也不消失 */
 .jelly.is-intro {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   background: linear-gradient(168deg, rgba(30, 39, 55, .82), rgba(10, 14, 20, .94));
-  box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .38),
+    inset 0 -40px 80px -60px rgba(127, 178, 255, .55);
 }
-/* 光泽保留，只把模糊滤镜去掉：放大状态下 blur 半径同样被放大，代价太高 */
-.jelly.is-intro::before,
-.jelly.is-intro::after { filter: none; }
 
 /* 开场文字层：绝对定位在卡片内部，随卡片一起缩放，不会飘在屏幕中央 */
 /* 页面级固定层，居中于视口；只跟随气泡的位移，不参与缩放 */
@@ -439,9 +439,34 @@ html.intro-on .nav {
   inset: 0;
   z-index: 44;
   pointer-events: none;
+  overflow: hidden;
   opacity: 0;
   transition: opacity .42s ease;
+  /* 首帧就是一张铺满视口的玻璃气泡：底色、内高光、弧形反光与
+     .jelly.is-intro 完全一致，时间轴接管时交叉淡化，光泽全程连续 */
   background: linear-gradient(168deg, rgba(30, 39, 55, .82), rgba(10, 14, 20, .94));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .38),
+    inset 0 -40px 80px -60px rgba(127, 178, 255, .55);
+}
+.intro-boot::before {
+  content: "";
+  position: absolute;
+  top: -46%;
+  left: 8%;
+  width: 84%;
+  height: 90%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, .26), rgba(255, 255, 255, .06) 42%, transparent 72%);
+  pointer-events: none;
+}
+.intro-boot::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 40%;
+  background: linear-gradient(180deg, transparent, rgba(127, 178, 255, .09));
+  pointer-events: none;
 }
 html.intro-pending .intro-boot:not(.fade) { opacity: 1; }
 .intro-boot.fade { opacity: 0; }
