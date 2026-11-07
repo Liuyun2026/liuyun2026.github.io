@@ -15,8 +15,10 @@
 
   var view = document.getElementById("view");
   var S = null;   /* 内容数据，启动时从 content.json 载入 */
-  var pendingRender = false; /* 片头播放期间数据已就绪，收尾后再重建视图 */
+  var introPending = true;   /* 首页开场动画是否还需要播放 */
   var lastPath = null;       /* 已渲染过的路径，避免同一地址重复渲染 */
+  var introTimers = [];      /* 开场动画的全部定时器，点击打断时统一清除 */
+  var introRunning = false;
   var pillReady = false;     /* 导航气泡是否已完成首次定位 */
 
   /* ---------- 工具 ---------- */
@@ -536,14 +538,14 @@
     "</div>";
   }
 
-  /* 区块快速跳转气泡：首页 / 项目 / 笔记 / 资料。
-     复用首页卡片下方的同款玻璃珠样式，放在内容页顶部，保持全站导航一致。 */
+  /* 区块快速跳转气泡：日志页顶部复用首页同款玻璃珠与图标 */
   var SECTION_ICONS = {
     home: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11 12 4l8 7"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/></svg>',
     projects: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 20.5 7v10L12 21.2 3.5 17V7z"/><path d="M3.5 7 12 11.4 20.5 7M12 11.4V21.2"/></svg>',
     notes: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h9L19 7.5v13H6z"/><path d="M14.5 3.5V8H19"/><path d="M9 12h7M9 15.5h7M9 8.5h2.5"/></svg>',
     files: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg>'
   };
+
   function sectionBubblesHtml(keys) {
     var labels = {
       home: ["首页", "Home"],
@@ -668,43 +670,161 @@
   }
 
   /* ---------- 首页开场动画 ----------
-   * 时间轴完全由 CSS keyframes 驱动（style.css 的 intro-card / intro-content），
-   * 首屏内联脚本在第一次绘制前量好尺寸并加 intro-run，动画随即开始播放。
-   * 这里只负责收尾，不驱动任何一帧。
+   * 时间轴：
+   *   0.00s  卡片铺满全屏，「你好」逐字浮现
+   *   0.90s  卡片弹性收缩回原位，「你好」缩小上移淡出
+   *   1.25s  卡片内容淡入
+   *   1.80s  三个气泡自下而上依次弹起
+   * 收缩用 FLIP：先量出卡片最终位置，反向施加 transform 使其与全屏重合，
+   * 再去掉 transform，浏览器自行补间，布局不会错位。
    */
-
-  /* 片头播放期间数据若已就绪，render 会被挂起；收尾时补这次渲染 */
-  function settleRender() {
-    if (!pendingRender) return;
-    pendingRender = false;
-    render();
+  function introLater(fn, ms) {
+    introTimers.push(window.setTimeout(fn, ms));
   }
 
-  /* 解锁页面：顶栏、页脚恢复显示，补上等待中的壁纸与渲染。
-     气泡的 .play 由 render() 统一处理，避免这里抢占 bubbles-played
-     导致收尾重建 #view 后气泡不再弹起 */
+  function clearIntroTimers() {
+    for (var i = 0; i < introTimers.length; i++) window.clearTimeout(introTimers[i]);
+    introTimers = [];
+  }
+
+  /* 解锁页面：顶栏、页脚恢复显示 */
   function introOff() {
-    document.documentElement.classList.remove("intro-on", "intro-run", "intro-pending");
+    document.documentElement.classList.remove("intro-on", "intro-pending");
+    /* 片头结束，补上等待中的壁纸 */
     if (typeof flushWallpaper === "function") flushWallpaper();
-    settleRender();
   }
 
-  /* 点击打断：直接跳到动画终态 */
+  /* 点击打断：立刻收尾到最终状态，不留半截动画 */
   function skipIntro() {
-    if (window.__introFinish) window.__introFinish();
-    else introOff();
+    if (!introRunning) return;
+    introRunning = false;
+    clearIntroTimers();
+
+    var card = document.querySelector(".jelly");
+    var layer = document.getElementById("introLayer");
+
+    if (card) {
+      card.style.transition = "transform .32s cubic-bezier(.3,1,.4,1), border-radius .28s ease";
+      card.style.transform = "";
+      card.style.borderRadius = "";
+      card.classList.remove("is-intro");
+      window.setTimeout(function () { card.style.transition = ""; }, 340);
+    }
+    if (layer) {
+      layer.classList.remove("on");
+      layer.style.transition = "none";
+      layer.style.transform = "";
+    }
+
+    introOff();
+    window.scrollTo(0, 0);
   }
 
-  window.addEventListener("intro:done", introOff);
-  /* 脚本加载晚于动画结束（极小概率）时补一次收尾 */
-  if (window.__introDone) introOff();
+  /* 版本自检未结束前不启动时间轴：旧 HTML 会被 vercheck 重载，
+     若中途启动就会出现片头播一半后整段重播。请求异常时 2 秒兜底放行。 */
+  function afterVerCheck(fn) {
+    var vc = window.__VERCHECK__;
+    if (!vc || typeof vc.then !== "function") { fn(); return; }
+    var fired = false;
+    var go = function () { if (fired) return; fired = true; fn(); };
+    vc.then(go);
+    window.setTimeout(go, 2000);
+  }
+
+  function playIntro() {
+    afterVerCheck(playIntroNow);
+  }
+
+  function playIntroNow() {
+    var card = document.querySelector(".jelly");
+    /* 静态首屏层由 index.html 提供，不在视图 HTML 里重建 */
+    var layer = document.getElementById("introLayer");
+    var boot = document.getElementById("introBoot");
+    /* 提前退出时必须解锁，否则顶栏/页脚会被首屏脚本藏死 */
+    var done = function () {
+      var bs = document.querySelector(".bubbles");
+      if (bs) bs.classList.add("play");
+    };
+    if (!card || !layer) { introOff(); done(); return; }
+
+    /* 撤掉待播状态；若接着播片头，is-intro 会在同一帧接管显示 */
+    document.documentElement.classList.remove("intro-pending");
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      introOff(); done(); return;
+    }
+
+    var hello = layer.querySelector(".intro-hello");
+    var welcome = layer.querySelector(".intro-welcome");
+    if (!hello || !welcome) { introOff(); done(); return; }
+
+    /* 静态层首帧已显示「你好」；清掉上一轮留下的状态再接管时间轴 */
+    hello.classList.remove("out");
+    welcome.classList.remove("in");
+    hello.classList.add("show");
+
+    var r = card.getBoundingClientRect();
+    if (!r.width || !r.height) { introOff(); done(); return; }
+
+    var vw = window.innerWidth, vh = window.innerHeight;
+    var s = Math.max(vw / r.width, vh / r.height) * 1.02;
+    var dx = vw / 2 - (r.left + r.width / 2);
+    var dy = vh / 2 - (r.top + r.height / 2);
+    var move = "translate3d(" + dx + "px," + dy + "px,0)";
+
+    introRunning = true;
+    document.documentElement.classList.add("intro-on");
+    card.classList.add("is-intro");
+
+    /* 气泡：位移 + 等比放大。圆角不做任何覆盖，保持 44px，
+       这样任意缩放倍数下圆角占宽度的比例恒定，全程都是气泡形态 */
+    card.style.transformOrigin = "50% 50%";
+    card.style.transform = move + " scale(" + s + ")";
+
+    /* 卡片已铺满且与静态底同色，此时淡出静态底，画面不出现空档 */
+    if (boot) boot.classList.add("fade");
+
+    /* 文字层本身就居中于视口，而气泡放大后中心也在视口中心，
+       所以开场不需要位移；收缩时再反向跟随气泡回到原位 */
+    layer.style.transform = "translate3d(0,0,0)";
+    layer.classList.add("on");
+
+    /* 串行节奏，总时长约 5 秒 */
+    introLater(function () { hello.classList.add("show"); }, 120);
+    introLater(function () { hello.classList.add("out"); }, 1250);
+    introLater(function () { welcome.classList.add("in"); }, 1700);
+
+    /* 收缩：气泡与文字层用完全相同的时长和缓动一起归位，两者始终同中心 */
+    introLater(function () {
+      var ease = "cubic-bezier(.32,.9,.3,1)";
+      card.style.transition = "transform 1.35s " + ease;
+      card.style.transform = "translate3d(0,0,0) scale(1)";
+      layer.style.transition = "transform 1.35s " + ease + ", opacity .55s ease";
+      layer.style.transform = "translate3d(" + (-dx) + "px," + (-dy) + "px,0)";
+      layer.classList.remove("on");
+    }, 2500);
+
+    introLater(function () { card.classList.remove("is-intro"); }, 3750);
+
+    introLater(function () {
+      card.style.transition = "none";
+      card.style.transform = "";
+      layer.style.transition = "none";
+      layer.style.transform = "";
+      window.setTimeout(function () {
+        card.style.transition = "";
+        layer.style.transition = "";
+      }, 60);
+        document.documentElement.classList.remove("intro-on");
+      var bubbles = document.querySelector(".bubbles");
+      if (bubbles) bubbles.classList.add("play");
+      introRunning = false;
+    }, 3900);
+  }
 
   function render() {
     if (!S) return;
     var r = route();
     view.innerHTML = r.html;
-    view.classList.remove("is-boot");
-    document.documentElement.classList.remove("boot-hidden");
     document.title = r.title || S.meta.name;
     if (typeof r.mount === "function") r.mount();
 
@@ -721,6 +841,12 @@
 
     window.scrollTo(0, 0);
 
+    /* 同步启动：内容刚写入 DOM、尚未绘制，此时上加缩放变换不会闪出原位 */
+    if (introPending && currentPath() === "/" && !location.hash.replace(/^#\/?/, "").split("/")[0]) {
+      introPending = false;
+      playIntro();
+    }
+
     lastPath = currentPath();
 
     if (slideClass) {
@@ -736,22 +862,10 @@
     /* 首次定位不要动画，之后跟随选中项滑动 */
     movePill(pillReady);
     pillReady = true;
-
-    /* 每次 render 都重建 #view，气泡上的 .play 会一起丢掉。
-       片头已落定时补回一次；bubbles-played 保证切页不重播弹起动画。
-       版本自检重载页不播片头，气泡直接静态就位 */
-    var bs = view.querySelector(".bubbles");
-    if (bs && !document.documentElement.classList.contains("intro-on") &&
-        !document.documentElement.classList.contains("bubbles-played")) {
-      document.documentElement.classList.add("bubbles-played");
-      var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if (!reduce && !document.documentElement.classList.contains("ver-reload")) bs.classList.add("play");
-    }
   }
 
   /* ---------- 左右滑动切换 ----------
-   * 顺序必须与顶栏一致：首页 → 项目 → 笔记 → 资料 → 日志与碎碎念。
-   * 点击顶栏链接时也用这张表算方向，位置写错会让新页从错误的一侧滑入。
+   * 顺序：首页 → 项目 → 笔记 → 资料
    * 左滑进入下一项（新页从右侧进），右滑返回上一项
    * 详情页（#/note/xxx、#/project/xxx）不参与滑动，避免和返回逻辑冲突
    */
@@ -890,9 +1004,6 @@
 
   initSwipe();
 
-  /* 片头由首屏内联脚本 + CSS 时间轴驱动，不等本脚本加载。
-     六个 JSON 在后台并行加载，就绪时若片头还在播放，就把 render 排到收尾，
-     避免重建 #view 打断卡片动画 */
   /* 内容按类别拆在 content/ 目录下，与代码区分离。
      请求带时间戳：绕开浏览器与 CDN 对 JSON 的缓存，保存后刷新立即生效 */
   var PARTS = ["meta", "projects", "notes", "files", "journal", "theme"];
@@ -917,16 +1028,11 @@
       };
       applyWallpaper(S.theme && S.theme.guest);
       initStatic();
-      if (document.documentElement.classList.contains("intro-on")) pendingRender = true;
-      else render();
+      render();
     })
     .catch(function () {
-      /* 加载失败时跳过片头并解锁页面，顶栏与页脚正常显示错误提示 */
-      if (window.__introFinish) window.__introFinish();
-      else introOff();
-      pendingRender = false;
-      view.classList.remove("is-boot");
-      document.documentElement.classList.remove("boot-hidden");
+      /* 加载失败时解锁页面，顶栏与页脚正常显示错误提示 */
+      introOff();
       view.innerHTML =
         '<div class="wrap"><div class="empty">内容加载失败，请刷新页面重试</div></div>';
     });

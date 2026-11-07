@@ -9,65 +9,61 @@
 <meta name="theme-color" content="#070910">
 <link rel="preload" as="image" href="/assets/img/wallpaper.jpg">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237FB2FF'/%3E%3Cstop offset='1' stop-color='%234FE3C1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='%230B0F16'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='15' font-weight='bold' fill='url(%23g)' text-anchor='middle'%3EL%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="/assets/css/style.css?v=202611080020">
-<script src="/assets/js/pageflow.js?v=202611080020"></script>
-<script>window.__BUILD__="202611080020";</script>
-<script src="/assets/js/vercheck.js?v=202611080020"></script>
+<link rel="stylesheet" href="/assets/css/style.css?v=202611080106">
+<script src="/assets/js/pageflow.js?v=202611080106"></script>
+<script>window.__BUILD__="202611080106";</script>
+<script src="/assets/js/vercheck.js?v=202611080106"></script>
 </head>
 <body>
 
 <script>
 /* 首屏判定，全部在第一次绘制前完成：
-   1. 首页首次进入播开场动画 → 藏顶栏与页脚、先隐藏真实 .jelly；
-      同步启动器量好尺寸后由 CSS keyframes 直接从铺满视口开始收缩，不等任何 JSON
+   1. 首页播开场动画 → 藏顶栏与页脚，把卡片预置为「待播」，同时显示静态首屏层
+      （满屏底色 + 「你好」），不等 JSON 就能出画面
    2. 带 from=admin（从管理端进入）→ 顶栏直接以六项形态出现，
       由 CSS 控制显隐，不需要等 JS 插入，因此不会先显示四项再补两项
-   3. 非首页路径（含 404.html 兜底的深层地址）→ 骨架先隐藏，
-      等数据就绪由 render() 一次性换成目标视图，不闪出首页卡片
-   4. 版本自检触发的重载带 v= 参数，此轮不进片头状态，卡片保持正常尺寸
+   3. 版本自检触发的重载会带 v= 参数，此轮不再重播「你好」的入场淡入
 
    注意：所有标记只能加在 documentElement 上，CSS 一律用 html.* 选择器匹配。 */
 (function () {
   try {
     var p = location.pathname.replace(/\/+$/, "") || "/";
     var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    var de = document.documentElement;
 
     if (/(^|[?&])from=admin(&|$)/.test(location.search)) {
-      de.classList.add("from-admin");
+      document.documentElement.classList.add("from-admin");
     }
     if (/(^|[?&])v=[0-9]{12}(&|$)/.test(location.search)) {
-      de.classList.add("ver-reload");
-      return;
+      document.documentElement.classList.add("ver-reload");
     }
-    if (p !== "/" || (location.hash && location.hash !== "#/")) {
-      de.classList.add("boot-hidden");
-      return;
-    }
+
+    if (p !== "/") return;
+    if (location.hash && location.hash !== "#/") return;
     if (reduce) return;
 
-    /* 只加状态，不写放大倍数：启动器量出真实尺寸后一次性写入 CSS 变量并
-       立刻启动 animation，首帧就是动画起点，不存在用估算值画出的静止帧 */
-    de.classList.add("intro-on", "intro-pending");
+    document.documentElement.classList.add("intro-on", "intro-pending");
 
-    /* 兜底：内联启动器异常时放出页面，避免长时间锁死 */
+    /* 兜底：脚本异常导致时间轴始终没启动时放出页面，避免长时间锁死。
+       正常路径下片头会等版本自检完成后自行启动，用不到这个兜底 */
     window.setTimeout(function () {
-      if (!window.__introDone && de.classList.contains("intro-on") &&
-          !de.classList.contains("intro-run")) {
+      var de = document.documentElement;
+      if (de.classList.contains("intro-pending") && !document.querySelector(".jelly.is-intro")) {
         de.classList.remove("intro-pending", "intro-on");
-        window.__introDone = true;
-        window.dispatchEvent(new Event("intro:done"));
       }
-    }, 3200);
+    }, 8000);
   } catch (e) {}
 })();
 </script>
 
 <div class="bg" aria-hidden="true"></div>
 
-<!-- 开场动画直接使用真实的果冻卡片（见 #view）：启动器量好尺寸后由 CSS
-     keyframes 从铺满视口收缩回来。不再有仿制的静态底色层或独立大字层，
-     玻璃、弧形高光、亮边从头到尾都是同一张卡片。 -->
+<!-- 开场静态首屏：HTML 解析到即出画面，不依赖内容 JSON。
+     时间轴由 app.js 在版本自检与数据就绪后接管，不重播「你好」。 -->
+<div class="intro-boot" id="introBoot" aria-hidden="true"></div>
+<div class="intro-layer on" id="introLayer" aria-hidden="true">
+  <div class="intro-hello show"><span>你</span><span>好</span></div>
+  <div class="intro-welcome">欢迎来到<span class="hl">流雲</span>的创客空间</div>
+</div>
 
 <header class="nav">
   <div class="nav-inner">
@@ -95,61 +91,7 @@
   </div>
 </header>
 
-<!-- 首帧骨架：片头启动器执行时 .jelly 必须已经布局好。
-     内容 JSON 在后台并行加载，就绪后由 app.js 补齐下方列表与计数；
-     片头期间不重建视图，收尾后 render() 再接管。
-     is-boot 只用于非首页路径在等数据期间隐藏骨架，render() 时移除。 -->
-<main id="view" class="is-boot">
-  <div class="home">
-    <section class="hero-jelly">
-      <div class="jelly">
-        <span class="jelly-tag">你好</span>
-        <h1>欢迎来到<span class="hl">流雲</span>的创客空间</h1>
-        <div class="jelly-meta">
-          <span class="pill"><i class="dot"></i>站点</span>
-          <a class="pill pill--link" href="https://github.com/Liuyun2026" target="_blank" rel="noopener">GitHub ↗</a>
-        </div>
-      </div>
-    </section>
-    <nav class="bubbles"></nav>
-  </div>
-</main>
-
-<script>
-/* 片头启动器：同步内联，不等外部脚本、版本自检或内容 JSON。
-   卡片此时由 intro-pending 隐藏但仍占位，先量出真实尺寸写入 CSS 变量，
-   再撤掉隐藏并加 intro-run，CSS keyframes 立即从铺满视口开始收缩；
-   animationend 统一收尾。全程没有静态插图，也没有第二套放大机制。 */
-(function () {
-  var de = document.documentElement;
-  if (!de.classList.contains("intro-pending")) return;
-  var card = document.querySelector("#view .jelly, #admView .jelly");
-  if (!card) { de.classList.remove("intro-pending", "intro-on"); return; }
-
-  var r = card.getBoundingClientRect();
-  var vw = window.innerWidth, vh = window.innerHeight;
-  var s = (r.width && r.height) ? Math.max(vw / r.width, vh / r.height) * 1.04 : 6;
-  de.style.setProperty("--intro-scale", s.toFixed(4));
-  de.style.setProperty("--intro-dx", (vw / 2 - (r.left + r.width / 2)).toFixed(2) + "px");
-  de.style.setProperty("--intro-dy", (vh / 2 - (r.top + r.height / 2)).toFixed(2) + "px");
-  de.classList.remove("intro-pending");
-  de.classList.add("intro-run");
-
-  var done = false;
-  function finish() {
-    if (done) return;
-    done = true;
-    de.classList.remove("intro-on", "intro-run", "intro-pending");
-    window.__introDone = true;
-    window.dispatchEvent(new Event("intro:done"));
-  }
-  window.__introFinish = finish;
-  card.addEventListener("animationend", function (e) {
-    if (e.target === card && e.animationName === "intro-card") finish();
-  });
-  window.setTimeout(finish, 2600);
-})();
-</script>
+<main id="view"></main>
 
 <footer>
   <div class="foot-inner">
@@ -158,6 +100,6 @@
   </div>
 </footer>
 
-<script src="/assets/js/app.js?v=202611080020"></script>
+<script src="/assets/js/app.js?v=202611080106"></script>
 </body>
 </html>
