@@ -920,6 +920,9 @@
   function paintWallpaper(url) {
     var bg = document.querySelector(".bg");
     if (!bg || !url) return;
+    /* 记住这张地址：下次进入首屏直接用它，不必等 theme.json 回来，
+       否则会先显示默认图，再看着它换成用户那张 */
+    try { localStorage.setItem("bg-guest", url); } catch (e) {}
     var probe = new Image();
     probe.decoding = "async";
     probe.onload = function () {
@@ -935,10 +938,8 @@
 
   function applyWallpaper(url) {
     if (!url) return;
-    if (document.documentElement.classList.contains("intro-on")) {
-      pendingWallpaper = url;
-      return;
-    }
+    /* 不再等片头结束再换图：越早换，越能藏在片头的覆盖层下面完成。
+       预加载用 decoding: async，不会抢动画的帧 */
     paintWallpaper(url);
   }
 

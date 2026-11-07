@@ -72,6 +72,8 @@
   function paintWallpaper(url) {
     var bg = document.querySelector(".bg");
     if (!bg || !url) return;
+    /* 同访客端：记住地址，供下次首屏直接使用 */
+    try { localStorage.setItem("bg-admin", url); } catch (e) {}
     var probe = new Image();
     probe.decoding = "async";
     probe.onload = function () {
