@@ -642,9 +642,10 @@
     var next = dir > 0;
     transitioning = true;
 
+    /* 只动 #view：壁纸 .bg 与顶栏 .nav 是它的兄弟节点，不参与过渡 */
     view.style.transition = "opacity .17s ease, transform .17s ease";
     view.style.opacity = "0";
-    view.style.transform = "translateX(" + (next ? -22 : 22) + "px)";
+    view.style.transform = "translateX(" + (next ? -34 : 34) + "px)";
 
     window.setTimeout(function () {
       try { history.pushState({ path: target }, "", url); } catch (err) { location.hash = target; }
@@ -653,10 +654,10 @@
       try { history.replaceState({ path: target }, document.title, url); } catch (err) {}
 
       view.style.transition = "none";
-      view.style.transform = "translateX(" + (next ? 22 : -22) + "px)";
+      view.style.transform = "translateX(" + (next ? 34 : -34) + "px)";
       void view.offsetWidth;
 
-      view.style.transition = "opacity .26s ease, transform .32s cubic-bezier(.2, 1, .3, 1)";
+      view.style.transition = "opacity .26s ease, transform .34s cubic-bezier(.2, 1, .3, 1)";
       view.style.opacity = "1";
       view.style.transform = "none";
 

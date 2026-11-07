@@ -123,9 +123,13 @@
        静态首屏层在所有页面都存在，不能用它判断，只认 html.intro-on */
     if (document.documentElement.classList.contains("intro-on")) return;
 
-    document.body.classList.add("pf-entering");
+    /* 只让中间内容区滑入。壁纸 .bg 与顶栏 .nav 是固定骨架，
+       整页淡入会把它们一起带走，看起来像页面重开 */
+    var main = document.querySelector("main");
+    if (!main) return;
+    main.classList.add("pf-entering");
     window.setTimeout(function () {
-      document.body.classList.remove("pf-entering");
+      main.classList.remove("pf-entering");
     }, 380);
   }
 

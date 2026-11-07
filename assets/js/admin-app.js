@@ -1536,6 +1536,9 @@
     return (current === "manage" && contentDirty) || (current === "theme" && themeDirty);
   }
 
+  /* 视图的横向顺序：往右是后面的视图，滑动方向据此决定 */
+  var ADM_ORDER = ["home", "manage", "theme"];
+
   function switchTo(v, push) {
     if (v === current) return;
     if (transitioning) return;
@@ -1545,6 +1548,12 @@
     var target = pathOfView(v);
     transitioning = true;
 
+    /* 只动 #admView：壁纸 .bg 与顶栏 .nav 是它的兄弟节点，不参与过渡 */
+    var from = ADM_ORDER.indexOf(current);
+    var to = ADM_ORDER.indexOf(v);
+    var outX = (from >= 0 && to >= 0 && to < from) ? 34 : -34;
+    var inX = -outX;
+
     var swap = function () {
       if (push) {
         try { history.pushState({ v: v }, "", target); } catch (e) { location.hash = target; }
@@ -1553,9 +1562,9 @@
 
       root.style.transition = "none";
       root.style.opacity = "0";
-      root.style.transform = "translateX(22px)";
+      root.style.transform = "translateX(" + inX + "px)";
       void root.offsetWidth;
-      root.style.transition = "opacity .26s ease, transform .32s cubic-bezier(.2,1,.3,1)";
+      root.style.transition = "opacity .26s ease, transform .34s cubic-bezier(.2,1,.3,1)";
       root.style.opacity = "1";
       root.style.transform = "none";
 
@@ -1564,12 +1573,12 @@
         root.style.opacity = "";
         root.style.transform = "";
         transitioning = false;
-      }, 340);
+      }, 360);
     };
 
     root.style.transition = "opacity .17s ease, transform .17s ease";
     root.style.opacity = "0";
-    root.style.transform = "translateX(-22px)";
+    root.style.transform = "translateX(" + outX + "px)";
 
     if (reduceMotion()) {
       root.style.transition = "";

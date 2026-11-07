@@ -1188,22 +1188,29 @@ main .block:nth-of-type(3) { animation-delay: .14s; }
   .nav-links--admin a { padding: 5px 5px; font-size: 11.5px; }
 }
 
-/* ---- 跨页面跳转过渡（pageflow.js 配合） ---- */
-/* 切出：整页淡出，避免点击后立即白屏 */
-html.pf-leaving body {
+/* ---- 跨页面跳转过渡（pageflow.js 配合） ----
+   静态骨架不参与过渡：.bg 是 position:fixed 的壁纸，.nav 是 sticky 顶栏，
+   footer 同样固定。整页淡出淡入会让这三样东西一起闪，看起来像页面重开。
+   这里把过渡收窄到 main（#view / #admView），只让中间内容区滑动。 */
+main { transition: opacity .15s ease, transform .15s ease; }
+
+/* 切出：内容区淡出并轻微左移，壁纸与顶栏原地不动 */
+html.pf-leaving main {
   opacity: 0;
-  transition: opacity .15s ease;
+  transform: translateX(-18px);
   pointer-events: none;
 }
-/* 进入：从透明淡入，与切出的淡出连成一次过渡 */
-body.pf-entering { animation: pf-fade-in .22s ease both; }
-@keyframes pf-fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+
+/* 进入：内容区从右侧滑入，与切出的左移连成一次横向滑动 */
+main.pf-entering { animation: pf-slide-in .3s cubic-bezier(.2, 1, .3, 1) both; }
+@keyframes pf-slide-in {
+  from { opacity: 0; transform: translateX(26px); }
+  to   { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  html.pf-leaving body { transition: none; }
-  body.pf-entering { animation: none; }
+  main { transition: none; }
+  html.pf-leaving main { transform: none; }
+  main.pf-entering { animation: none; }
 }
 
 /* ---- 内容 / 壁纸两项：由 html.from-admin 控制显隐 ----
