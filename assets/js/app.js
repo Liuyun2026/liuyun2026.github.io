@@ -794,7 +794,11 @@
         card.style.transition = "";
         layer.style.transition = "";
       }, 60);
-        document.documentElement.classList.remove("intro-on");
+      /* 必须走 introOff 收尾，不能只 remove("intro-on")：
+         片头期间 applyWallpaper 会把壁纸地址挂进 pendingWallpaper，
+         由 introOff 里的 flushWallpaper 补上。直接移除类名会让它永远挂着，
+         首页就一直停在 CSS 的默认壁纸，表现为「换了壁纸没反应」 */
+      introOff();
       var bubbles = document.querySelector(".bubbles");
       if (bubbles) bubbles.classList.add("play");
       introRunning = false;
