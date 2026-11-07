@@ -42,6 +42,15 @@ html {
   scroll-behavior: smooth;
 }
 
+/* 滚动条槽位常驻。管理端「内容」视图会切成固定视口高，文档滚动条随之
+   出现或消失；宽度一变，居中的顶栏与 cover 壁纸就会横向跳动。 */
+html {
+  scrollbar-gutter: stable;
+}
+@supports not (scrollbar-gutter: stable) {
+  html { overflow-y: scroll; }
+}
+
 body {
   margin: 0;
   min-height: 100vh;

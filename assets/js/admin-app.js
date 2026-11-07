@@ -1572,6 +1572,7 @@
         root.style.transition = "";
         root.style.opacity = "";
         root.style.transform = "";
+        document.documentElement.classList.remove("adm-swapping");
         transitioning = false;
       }, 360);
     };
@@ -1590,6 +1591,8 @@
       return;
     }
 
+    /* 淡出已经开始（root 不透明度为 0），此时关掉面板模糊看不到变化 */
+    document.documentElement.classList.add("adm-swapping");
     window.setTimeout(swap, 175);
   }
 
