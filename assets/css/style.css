@@ -39,7 +39,10 @@
 html {
   background: var(--bg);
   -webkit-text-size-adjust: 100%;
-  scroll-behavior: smooth;
+  /* 不开 scroll-behavior: smooth。切换视图时 render() 会把滚动归零，
+     平滑滚动会和新页面的滑入动画叠在一起，表现为内容整体上下滑一段，
+     壁纸又是 fixed，相对之下就像壁纸在跳。站内没有需要平滑滚动的锚点 */
+  scroll-behavior: auto;
 }
 
 /* 滚动条槽位常驻。管理端「内容」视图会切成固定视口高，文档滚动条随之

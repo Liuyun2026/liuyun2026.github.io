@@ -403,15 +403,9 @@ body { display: block; height: auto; overflow: auto; }
 
 .adm-view { position: relative; z-index: 1; }
 
-/* 视图切换期间关掉面板的 backdrop-filter：位移动画每帧都要重算模糊，
-   三栏编辑器的三个面板叠在一起时掉帧明显。过渡只有三百多毫秒，
-   面板本身有半透明渐变底，关掉模糊几乎看不出差别。
-   状态挂在 documentElement 上：render() 会重设 #admView 的 className，
-   挂在容器上会被冲掉。 */
-html.adm-swapping .adm-panel {
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-}
+/* 面板的 backdrop-filter 全程保持不动。曾经在切换期间临时关掉它来省帧，
+   结果面板从模糊变清晰再变回去，背后的壁纸看起来像跳了一下——
+   代价比掉帧更明显，这里不再这么做。 */
 
 /* 主页视图：内容超出可滚动 */
 .adm-view--home { min-height: calc(100vh - 70px); }
