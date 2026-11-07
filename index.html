@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>流雲的创客空间</title>
+<meta name="description" content="流雲（Liuyun2026）的创客空间：Zynq-7020 板级设计、TPS40057 电源、EDA 工具链与技术手册翻译。">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#070910">
+<link rel="preload" as="image" href="/assets/img/wallpaper.jpg">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237FB2FF'/%3E%3Cstop offset='1' stop-color='%234FE3C1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='%230B0F16'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='15' font-weight='bold' fill='url(%23g)' text-anchor='middle'%3EL%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/assets/css/style.css?v=202611080720">
+<script src="/assets/js/pageflow.js?v=202611080720"></script>
+<script>window.__BUILD__="202611080720";</script>
+<script src="/assets/js/vercheck.js?v=202611080720"></script>
+</head>
+<body>
+
+<script>
+/* 首屏判定，全部在第一次绘制前完成：
+   1. 首页播开场动画 → 藏顶栏与页脚，把卡片预置为「待播」，同时显示静态首屏层
+      （一张铺满的卡片 + 「你好」，与主卡同一套材质），不等 JSON 就能出画面
+   2. 带 from=admin（从管理端进入）→ 顶栏直接以六项形态出现，
+      由 CSS 控制显隐，不需要等 JS 插入，因此不会先显示四项再补两项
+   3. 版本自检触发的重载会带 v= 参数，此轮不再重播「你好」的入场淡入
+
+   注意：所有标记只能加在 documentElement 上，CSS 一律用 html.* 选择器匹配。 */
+(function () {
+  try {
+    /* 玻璃档位也要在首次绘制前定下来：片头与卡片一进来就用正确的那一套，
+       否则会先按磨砂画一帧、再改成透明。值由 app.js 读到配置后写入本机 */
+    var gl = localStorage.getItem("glass-guest");
+    if (gl === "clear") document.documentElement.classList.add("glass-clear");
+
+    var p = location.pathname.replace(/\/+$/, "") || "/";
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (/(^|[?&])from=admin(&|$)/.test(location.search)) {
+      document.documentElement.classList.add("from-admin");
+    }
+    if (/(^|[?&])v=[0-9]{12}(&|$)/.test(location.search)) {
+      document.documentElement.classList.add("ver-reload");
+    }
+
+    if (p !== "/") return;
+    if (location.hash && location.hash !== "#/") return;
+    if (reduce) return;
+    /* 版本自检触发的重载不播片头：这一次重载本来就是「拿新版」，
+       再让用户等四秒动画，观感就是刷新后闪一下又要等半天 */
+    if (document.documentElement.classList.contains("ver-reload")) return;
+
+    document.documentElement.classList.add("intro-on", "intro-pending");
+
+    /* 兜底：脚本异常导致时间轴始终没启动时放出页面，避免长时间锁死。
+       正常路径下片头会等版本自检完成后自行启动，用不到这个兜底 */
+    window.setTimeout(function () {
+      var de = document.documentElement;
+      if (de.classList.contains("intro-pending") && !document.querySelector(".jelly.is-intro")) {
+        de.classList.remove("intro-pending", "intro-on");
+      }
+    }, 8000);
+  } catch (e) {}
+})();
+</script>
+
+<div class="bg" aria-hidden="true"></div>
+
+<script>
+/* 首屏壁纸用上次记住的地址（没记过就用默认图）。等 theme.json 回来再设的话，
+   用户会先看到默认图，再看着它换成自己那张。
+   地址必须在解码完成后才挂到 .bg 上：边下边挂的话浏览器会从上往下一段段画，
+   就是「上半张出来了、下面没有」。解完一次性淡入 */
+(function () {
+  try {
+    var u = localStorage.getItem("bg-guest") || "/assets/img/wallpaper.jpg";
+    var bg = document.querySelector(".bg");
+    if (!bg) return;
+    var img = new Image();
+    img.decoding = "async";
+    var show = function () {
+      bg.style.backgroundImage = 'url("' + u + '")';
+      bg.classList.add("bg-on");
+    };
+    img.onload = function () {
+      if (img.decode) img.decode().then(show, show); else show();
+    };
+    img.onerror = show;
+    img.src = u;
+  } catch (e) {}
+})();
+</script>
+
+<!-- 开场静态首屏：HTML 解析到即出画面，不依赖内容 JSON。
+     时间轴由 app.js 在版本自检与数据就绪后接管，不重播「你好」。 -->
+<div class="intro-boot" id="introBoot" aria-hidden="true"></div>
+<div class="intro-layer on" id="introLayer" aria-hidden="true">
+  <div class="intro-hello show"><span>你</span><span>好</span></div>
+  <div class="intro-welcome">欢迎来到<span class="hl">流雲</span>的创客空间</div>
+</div>
+<div class="intro-hint" id="introHint" aria-hidden="true">轻触跳过</div>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="/">
+      <span class="mark">L</span>
+      <span class="brand-txt">流雲</span>
+    </a>
+    <nav class="nav-links" id="navLinks">
+      <i class="nav-pill" aria-hidden="true"></i>
+      <a href="/" data-nav="">首页</a>
+      <a href="/projects" data-nav="projects">项目</a>
+      <a href="/notes" data-nav="notes">笔记</a>
+      <a href="/files" data-nav="files">资料</a>
+      <a href="/journal" data-nav="journal">日志与碎碎念</a>
+      <!-- 这两项只在 from-admin 时显示，CSS 控制，避免 JS 后插造成闪动 -->
+      <a href="/manage/?from=admin" data-nav-extra="">内容</a>
+      <a href="/theme/?from=admin" data-nav-extra="">壁纸</a>
+    </nav>
+    <div class="nav-right">
+      <span class="nav-status"><i class="dot"></i><span id="navStatus"></span></span>
+      <a class="nav-ico" id="navGithub" href="https://github.com/Liuyun2026" target="_blank" rel="noopener" aria-label="GitHub">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A7.995 7.995 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+      </a>
+    </div>
+  </div>
+</header>
+
+<main id="view"></main>
+
+<footer>
+  <div class="foot-inner">
+    <span>© liuyun2026</span>
+    <span class="links" id="footLinks"></span>
+  </div>
+</footer>
+
+<script src="/assets/js/app.js?v=202611080720"></script>
+</body>
+</html>

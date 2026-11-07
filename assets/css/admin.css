@@ -1,0 +1,591 @@
+/* ============================================================================
+ * admin.css —— 管理端三页共用（欢迎页 / manage.html 编辑器 / theme.html 壁纸）
+ * 基础玻璃风格来自 style.css，这里只放管理端自身的布局
+ * ========================================================================== */
+
+/* ---- 欢迎页容器 ---- */
+.adm-welcome { position: relative; z-index: 1; }
+
+/* 卡片标题后的「管理端」小字：唯一与访客端首页不同的地方 */
+.adm-tag {
+  font-size: .36em;
+  font-weight: 500;
+  color: var(--fg-3);
+  letter-spacing: .18em;
+  margin-left: 10px;
+  vertical-align: .5em;
+  white-space: nowrap;
+}
+
+/* ---- 二层页面通用：顶栏 + 内容区，正常文档流 ---- */
+.adm-page {
+  position: relative; z-index: 1;
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+}
+
+.adm-top {
+  flex-shrink: 0;
+  position: relative; z-index: 20;
+  display: flex; align-items: center; gap: 14px;
+  width: 100%;
+  padding: 18px 24px 14px;
+  background: linear-gradient(180deg, rgba(7,9,16,.92), rgba(7,9,16,.6) 70%, transparent);
+}
+.adm-top h1 { font-size: 16px; font-weight: 700; letter-spacing: .01em; }
+.adm-back { font-size: 13px; color: var(--fg-3); }
+.adm-back:hover { color: var(--accent); }
+.adm-status {
+  margin-left: auto; font-size: 12px; padding: 5px 12px; border-radius: 999px;
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); color: var(--fg-3);
+}
+.adm-status.on { color: var(--ok); border-color: rgba(95,217,139,.3); background: rgba(95,217,139,.1); }
+
+/* 二层页面顶栏：复用访客端 .nav 结构与外观，只覆盖固定容器内的定位 */
+.adm-nav {
+  position: relative;
+  top: auto;
+  flex-shrink: 0;
+  padding: 14px 0 0;
+  z-index: 60;
+}
+/* 当前项高亮：二层页面不跑滑块脚本，直接用底色标出 */
+.adm-nav .nav-links a.on {
+  color: #FFFFFF;
+  font-weight: 600;
+  background: rgba(26, 35, 51, .55);
+  border: 1px solid rgba(255, 255, 255, .22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3);
+}
+.adm-nav .nav-status { font-size: 12px; }
+/* 令牌连接后状态文字转绿 */
+#status.on { color: var(--ok); }
+
+/* 管理端顶栏的回访客站入口：小胶囊，与状态标签同高 */
+.adm-visit {
+  font-size: 12px;
+  line-height: 1;
+  padding: 6px 11px;
+  border-radius: 999px;
+  color: var(--fg-3);
+  background: rgba(255, 255, 255, .05);
+  border: 1px solid rgba(255, 255, 255, .1);
+  white-space: nowrap;
+  transition: color .2s, border-color .2s, background .2s;
+}
+.adm-visit:hover {
+  color: var(--accent);
+  background: rgba(127, 178, 255, .1);
+  border-color: rgba(127, 178, 255, .35);
+}
+/* 箭头由样式补出，窄屏可以只留文字 */
+.adm-visit::after { content: " ↗"; }
+
+/* 管理端横栏六项，窄屏收紧间距避免溢出 */
+@media (max-width: 760px) {
+  .adm-nav .nav-links a { padding: 6px 9px; font-size: 12.5px; }
+  .adm-nav .nav-inner { gap: 10px; }
+  .adm-visit { padding: 5px 9px; font-size: 11.5px; }
+}
+@media (max-width: 560px) {
+  .adm-nav .nav-links a { padding: 6px 7px; font-size: 12px; }
+  .adm-visit::after { content: ""; }
+}
+/* 手机竖屏：六项导航 + 访客站优先，图标先让位（GitHub 在页脚、手册在内容页左下） */
+@media (max-width: 480px) {
+  .adm-nav .nav-inner { gap: 6px; }
+  .adm-nav .nav-links a { padding: 5px 5px; font-size: 11.5px; }
+  .adm-visit { padding: 4px 7px; font-size: 11px; }
+  .adm-nav .nav-ico { display: none; }
+}
+
+/* ---- 编辑器（manage.html）：接管整个视口 ----
+ * 遮罩只做轻度压暗，壁纸从 .bg 透出来；模糊交给各面板自身，不在全屏层上加 */
+.adm-editor {
+  position: fixed; inset: 0; z-index: 40;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(7, 9, 16, .62), rgba(7, 9, 16, .46) 40%, rgba(7, 9, 16, .55));
+}
+
+.adm-main {
+  flex: 1; min-height: 0;
+  width: 100%;
+  padding: 0 24px 16px;
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr) 380px;
+  gap: 16px;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.adm-panel {
+  border-radius: var(--r); padding: 16px;
+  background: linear-gradient(158deg, var(--g-bg-a), var(--g-bg-b));
+  -webkit-backdrop-filter: blur(var(--g-blur)) saturate(var(--g-sat));
+  backdrop-filter: blur(var(--g-blur)) saturate(var(--g-sat));
+  border: 1px solid var(--g-edge);
+  box-shadow: var(--g-sh);
+}
+
+.adm-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+.adm-tabs button {
+  /* 按文字宽排，不强制等宽；长标签单行，四项保持一排 */
+  flex: 0 0 auto; white-space: nowrap;
+  font-size: 12.5px; padding: 7px 12px; border-radius: 999px; cursor: pointer;
+  color: var(--fg-2); background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.09); font-family: inherit; transition: .2s;
+}
+.adm-tabs button.on { color: #fff; background: rgba(26,35,51,.75); border-color: rgba(255,255,255,.24); font-weight: 600; }
+
+.adm-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 12px; border-radius: 12px; cursor: pointer;
+  border: 1px solid transparent; transition: .18s;
+}
+.adm-item:hover { background: rgba(255,255,255,.05); }
+.adm-item.on { background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.16); }
+.adm-item .t { font-size: 13.5px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-item .d { font-size: 11px; color: var(--fg-3); flex-shrink: 0; }
+
+.adm-add {
+  width: 100%; margin-top: 12px; padding: 10px; border-radius: 999px; cursor: pointer;
+  font-size: 13px; font-family: inherit; color: var(--accent);
+  background: rgba(127,178,255,.1); border: 1px dashed rgba(127,178,255,.35);
+}
+.adm-add:hover { background: rgba(127,178,255,.16); }
+
+.adm-field { margin-bottom: 14px; }
+.adm-field > label { display: block; font-size: 12px; color: var(--fg-3); margin-bottom: 6px; letter-spacing: .03em; }
+.adm-field input, .adm-field textarea, .adm-field select {
+  width: 100%; font-family: inherit; font-size: 13.5px; color: var(--fg);
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.11);
+  border-radius: 10px; padding: 10px 12px; outline: none; transition: .2s;
+}
+.adm-field textarea { min-height: 90px; line-height: 1.7; resize: vertical; }
+.adm-field textarea[data-k="specs"],
+.adm-field textarea[data-k="links"],
+.adm-field textarea[data-k="body"] { min-height: 200px; }
+.adm-field textarea[data-k="text"] { min-height: 160px; }
+.adm-field input:focus, .adm-field textarea:focus, .adm-field select:focus {
+  border-color: rgba(127,178,255,.5); background: rgba(255,255,255,.08);
+}
+.adm-field .hintline { font-size: 11.5px; color: var(--fg-3); margin-top: 5px; line-height: 1.6; }
+/* ---- 分类 / 状态：自绘下拉 ----
+   原生 select 的弹出层由系统绘制，深色下选项会发灰、字号也改不了，
+   所以整块自己画，视觉与输入框保持一致 */
+.adm-pick { position: relative; }
+.adm-pick-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: var(--fg);
+  background: rgba(255, 255, 255, .05);
+  border: 1px solid rgba(255, 255, 255, .11);
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: .2s;
+}
+.adm-pick-btn:hover { border-color: rgba(255, 255, 255, .2); }
+.adm-pick.open .adm-pick-btn,
+.adm-pick-btn:focus { border-color: rgba(127, 178, 255, .5); background: rgba(255, 255, 255, .08); outline: none; }
+.adm-pick-val { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-pick-val.is-empty { color: var(--fg-3); }
+.adm-pick-arrow { flex-shrink: 0; opacity: .55; transition: transform .2s; }
+.adm-pick.open .adm-pick-arrow { transform: rotate(180deg); }
+
+.adm-pick-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 40;
+  display: none;
+  max-height: 236px;
+  overflow-y: auto;
+  padding: 5px;
+  border-radius: 12px;
+  background: rgba(18, 22, 30, .97);
+  border: 1px solid rgba(255, 255, 255, .13);
+  box-shadow: 0 24px 48px -20px rgba(0, 0, 0, .92);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+.adm-pick-menu.open { display: block; }
+.adm-pick-menu button {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: var(--fg-2);
+  text-align: left;
+  cursor: pointer;
+}
+.adm-pick-menu button:hover { background: rgba(255, 255, 255, .08); color: #fff; }
+.adm-pick-menu button.on { background: rgba(47, 123, 255, .18); color: #fff; }
+
+/* 最后一项：比预设值小一号、浅一档，右侧补「手动填写」做说明 */
+.adm-pick-menu .adm-pick-other {
+  margin-top: 5px;
+  padding: 9px 10px 7px;
+  font-size: 12px;
+  color: var(--fg-3);
+  border-top: 1px solid rgba(255, 255, 255, .09);
+  border-radius: 0 0 8px 8px;
+}
+.adm-pick-menu .adm-pick-other:hover { color: var(--fg-2); background: rgba(255, 255, 255, .05); }
+.adm-pick-menu .adm-pick-other::after { content: "手动填写"; float: right; opacity: .55; font-size: 11px; }
+
+.adm-pick-input {
+  width: 100%;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: var(--fg);
+  background: rgba(255, 255, 255, .08);
+  border: 1px solid rgba(127, 178, 255, .5);
+  border-radius: 10px;
+  padding: 10px 12px;
+  outline: none;
+}
+.adm-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.adm-token { display: flex; gap: 8px; margin-bottom: 14px; }
+.adm-token input { flex: 1; }
+.adm-token button {
+  padding: 0 14px; border-radius: 10px; cursor: pointer; font-size: 12.5px; font-family: inherit;
+  color: var(--fg); background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
+  white-space: nowrap; flex-shrink: 0;
+}
+
+.adm-manual {
+  padding: 9px 18px; font-size: 12.5px; color: var(--fg-3);
+  border-radius: 999px; border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04); transition: .2s; flex-shrink: 0;
+}
+.adm-manual:hover { color: var(--accent); border-color: rgba(127,178,255,.35); }
+
+/* ---- 正文工具栏 ---- */
+.adm-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.adm-tools button {
+  font-size: 12px; padding: 5px 11px; border-radius: 8px; cursor: pointer;
+  color: var(--fg-2); background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.1); font-family: inherit; transition: .18s;
+}
+.adm-tools button:hover { color: #fff; background: rgba(255,255,255,.11); }
+
+/* ---- 附件区 ---- */
+.adm-attach { margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.08); }
+.adm-attach-head { font-size: 12px; color: var(--fg-3); margin-bottom: 10px; }
+.adm-attach-item {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+  border-radius: 8px; background: rgba(255,255,255,.04); margin-bottom: 6px; font-size: 12.5px;
+}
+.adm-attach-item .n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-attach-item .s { color: var(--fg-3); font-size: 11px; flex-shrink: 0; }
+.adm-attach-item .x { cursor: pointer; color: var(--fg-3); flex-shrink: 0; }
+.adm-attach-item .x:hover { color: #F2757A; }
+.adm-attach-actions { display: flex; gap: 8px; margin-top: 8px; }
+.adm-attach-actions button {
+  flex: 1; padding: 8px; border-radius: 8px; cursor: pointer; font-size: 12px;
+  color: var(--fg-2); background: rgba(255,255,255,.05);
+  border: 1px dashed rgba(255,255,255,.14); font-family: inherit;
+}
+.adm-attach-actions button:hover { color: #fff; border-color: rgba(255,255,255,.28); }
+
+/* ---- 左右栏：自身不滚，内部区域滚 ---- */
+.adm-left, .adm-preview {
+  display: flex; flex-direction: column;
+  padding: 0; overflow: hidden; min-height: 0;
+}
+.adm-col-scroll {
+  flex: 1; min-height: 0; overflow-y: auto; padding: 16px;
+}
+#edit { overflow-y: auto; min-height: 0; }
+
+.adm-manual {
+  flex-shrink: 0; margin: 0 14px 14px; padding: 9px 0;
+  text-align: center; border-radius: 999px;
+}
+
+.adm-leftlinks {
+  flex-shrink: 0;
+  display: flex; gap: 10px;
+  margin: 0 14px 14px;
+}
+.adm-leftlinks .adm-manual { flex: 1; margin: 0; }
+
+.adm-preview-foot {
+  flex-shrink: 0; padding: 12px 14px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  background: rgba(8,11,17,.5);
+}
+.adm-preview-foot .adm-msg { margin: 0 0 8px; text-align: left; min-height: 16px; }
+.adm-foot-btns { display: flex; align-items: center; gap: 8px; }
+.adm-foot-btns .adm-del { flex-shrink: 0; }
+.adm-foot-btns .adm-save { margin-left: auto; }
+.adm-preview-head {
+  font-size: 11.5px; color: var(--fg-3); letter-spacing: .08em;
+  margin-bottom: 14px; padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.adm-preview-body { font-size: 13.5px; }
+.adm-preview-body h2 { font-size: 16px; margin: 20px 0 10px; padding-left: 12px; }
+.adm-preview-body h3 { font-size: 14px; margin: 16px 0 8px; }
+.adm-preview-body p { font-size: 13.5px; line-height: 1.8; margin-bottom: 12px; }
+.adm-preview-body ul { padding-left: 18px; margin-bottom: 12px; }
+.adm-preview-body li { font-size: 13.5px; margin: 4px 0; }
+.adm-preview-body table { font-size: 12px; }
+.adm-preview-body th, .adm-preview-body td { padding: 7px 9px; }
+.adm-preview-body img { margin: 12px 0; }
+
+.adm-empty { padding: 40px 10px; text-align: center; color: var(--fg-3); font-size: 13px; }
+
+/* ---- 保存/删除/消息 ---- */
+.adm-actions {
+  display: flex; align-items: center; gap: 14px;
+  margin-top: 28px; padding-top: 22px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+.adm-del {
+  padding: 9px 16px; border-radius: 999px; font-size: 12.5px; cursor: pointer;
+  color: #F2757A; background: rgba(242,117,122,.08);
+  border: 1px solid rgba(242,117,122,.3); font-family: inherit; transition: .2s;
+}
+.adm-del:hover { background: rgba(242,117,122,.16); }
+.adm-del:disabled { opacity: .35; cursor: default; background: transparent; }
+.adm-save {
+  margin-left: auto; padding: 11px 26px; border-radius: 999px; font-size: 13.5px; font-weight: 600; cursor: pointer;
+  color: #06101F; background: linear-gradient(140deg, #9CC4FF, #4FE3C1); border: 0; font-family: inherit;
+}
+.adm-save:disabled { opacity: .5; cursor: default; }
+.adm-msg { font-size: 12.5px; color: var(--fg-3); margin-left: auto; text-align: right; }
+.adm-msg.ok { color: var(--ok); }
+.adm-msg.err { color: #F2757A; }
+
+/* ---- 壁纸管理页（theme.html）---- */
+.theme-main {
+  flex: 1; width: 100%; max-width: 920px; margin: 0 auto;
+  padding: 12px 24px 40px;
+}
+.theme-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+}
+.theme-card { padding: 18px; }
+/* 玻璃质感从网格里搬出来之后就没有间距了（原先靠 grid 的 gap），
+   这里补上和下面壁纸卡之间的间距，与历史记录的 18px 对齐 */
+.theme-glass { padding: 18px; margin-bottom: 18px; }
+.theme-name { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+.theme-preview {
+  border-radius: 14px; overflow: hidden;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04);
+  aspect-ratio: 16 / 9;
+}
+.theme-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.theme-actions { display: flex; gap: 8px; margin-top: 14px; }
+.theme-actions button {
+  flex: 1; padding: 9px 0; border-radius: 999px; cursor: pointer; font-size: 12.5px;
+  color: var(--fg-2); background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.12); font-family: inherit; transition: .2s;
+}
+.theme-actions button:hover { color: #fff; background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.24); }
+.theme-foot {
+  display: flex; align-items: center; gap: 14px;
+  margin-top: 22px; padding-top: 18px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+.theme-foot .adm-msg { margin: 0 0 0 0; text-align: left; flex: 1; }
+
+/* ---- 壁纸历史记录：两列卡片，操作按钮为气泡 ---- */
+.theme-history { margin-top: 18px; padding: 18px; }
+.theme-history-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
+}
+.theme-history-head .theme-name { margin-bottom: 0; }
+.hist-target { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--fg-3); }
+.hist-target button {
+  padding: 5px 12px; border-radius: 999px; cursor: pointer; font-size: 12px;
+  color: var(--fg-2); background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.12); font-family: inherit; transition: .2s;
+}
+.hist-target button.on {
+  color: #2F7BFF; background: rgba(47,123,255,.12); border-color: rgba(47,123,255,.48);
+}
+
+.hist-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.hist-empty {
+  grid-column: 1 / -1; padding: 28px 0;
+  text-align: center; font-size: 12.5px; color: var(--fg-3);
+}
+.hist-item {
+  border-radius: 14px; overflow: hidden;
+  background: rgba(255,255,255,.035);
+  border: 1px solid rgba(255,255,255,.1);
+}
+.hist-thumb { aspect-ratio: 16 / 9; background: rgba(255,255,255,.04); overflow: hidden; }
+.hist-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.hist-meta { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px 0; }
+.hist-name {
+  font-size: 12.5px; color: var(--fg);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.hist-sub { font-size: 11px; color: var(--fg-3); }
+.hist-actions { display: flex; gap: 8px; padding: 10px 12px 12px; }
+.hist-actions button {
+  flex: 0 0 auto; padding: 7px 18px; border-radius: 999px;
+  font-size: 12.5px; font-weight: 600; font-family: inherit;
+  cursor: pointer; transition: .2s;
+}
+/* 使用：蓝字气泡 */
+.hist-use {
+  color: #2F7BFF; background: rgba(47,123,255,.1);
+  border: 1px solid rgba(47,123,255,.42);
+}
+.hist-use:hover { background: rgba(47,123,255,.2); }
+/* 删除：红底白字气泡 */
+.hist-del { color: #fff; background: #E5484D; border: 1px solid #E5484D; }
+.hist-del:hover { background: #F26A6E; border-color: #F26A6E; }
+
+/* 管理端气泡有五个，补上第 4、5 个的弹起延迟，保持依次弹起的节奏 */
+.bubbles.play .bubble:nth-child(4) { animation-delay: .41s, 1.5s; }
+.bubbles.play .bubble:nth-child(5) { animation-delay: .52s, 1.6s; }
+
+/* ---- 响应式 ---- */
+@media (max-width: 1280px) {
+  /* 高度与滚动统一由 .page 负责，这里不再改 body 的 overflow */
+  body { display: block; }
+  .adm-main { grid-template-columns: 300px minmax(0, 1fr); overflow: visible; }
+  .adm-preview { display: none; }
+  .adm-left { overflow: visible; }
+  .adm-col-scroll, #edit { overflow: visible; }
+}
+
+@media (max-width: 860px) {
+  .adm-main { padding-left: 14px; padding-right: 14px; padding-bottom: 40px; }
+  .adm-row { grid-template-columns: 1fr; }
+  .adm-top { padding: 14px 14px 10px; }
+  .adm-panel { padding: 14px; }
+  .adm-main { grid-template-columns: minmax(0, 1fr); display: block; }
+  .adm-left { margin-bottom: 12px; }
+  .adm-manual { padding: 8px 14px; font-size: 12px; }
+  .theme-main { padding: 8px 14px 32px; }
+  .theme-grid { grid-template-columns: 1fr; }
+  /* 壁纸卡改为单列后，开关组也跟着单列，负边距一并归零 */
+  .glass-rows { grid-template-columns: 1fr; gap: 10px; margin: 14px 0 0; }
+  .hist-grid { grid-template-columns: 1fr; }
+}
+
+/* ============================================================================
+ * 单页应用视图容器
+ * home / manage / theme 三个视图在 #admView 内互相替换，切换不整页加载
+ * ========================================================================== */
+
+/* 管理端改成两层结构：视口本身不滚动，滚动全部发生在 .page 内部。
+   壁纸 .bg 留在 .page 外面，尺寸只跟视口有关；滚动条再怎么出现、切换时
+   视图再怎么位移，都挤不动它，cover 也就不会重新缩放。
+   .page 上的 scrollbar-gutter 保证它自己的滚动条槽位恒定，顶栏不会横向抽动；
+   overflow-x: hidden 负责裁掉 #admView 切换时的 translateX 溢出。 */
+html,
+body { height: 100%; overflow: hidden; }
+body { display: block; }
+.page {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+
+.adm-view { position: relative; z-index: 1; }
+
+/* 面板的 backdrop-filter 全程保持不动。曾经在切换期间临时关掉它来省帧，
+   结果面板从模糊变清晰再变回去，背后的壁纸看起来像跳了一下——
+   代价比掉帧更明显，这里不再这么做。 */
+
+/* 切页滑动由 style.css 的「切页滑动」统一处理：类挂在 #admView 上，
+   位移只落在 .adm-panel 与 .jelly 自己身上。
+   这里保留一句说明，避免有人回头又给 #admView 加 transition——
+   transform / opacity 会让容器变成 backdrop root，面板随之模糊不到壁纸。 */
+
+/* ============================================================================
+ * 玻璃质感：管理端面板内部
+ *
+ * 档位由 html.glass-clear 控制，管理端读 theme.json 的 glass.admin。
+ * .adm-panel 本体走 style.css 的 --g-* 变量，这里只管面板内部那些「有内容的框」：
+ * 面板本身已经是 backdrop root，内部元素再挂 backdrop-filter 也模糊不到壁纸，
+ * 所以只调底色——用 --g-well-* 两个变量跟着档位走，不再逐个元素写覆盖规则。
+ * ========================================================================== */
+.adm-token input,
+.adm-token button,
+.adm-tabs button,
+.adm-pick-btn,
+.adm-manual,
+.adm-tools button,
+.theme-actions button,
+.glass-switch button,
+.hist-target button,
+.hist-item,
+.theme-preview {
+  background: var(--g-well-bg);
+  border-color: var(--g-well-edge);
+}
+
+/* 选中态比未选中重一档，两档都要能和其余按钮分开 */
+.adm-tabs button.on {
+  background: var(--g-well-on-bg);
+  border-color: var(--g-well-on-edge);
+}
+/* 壁纸页的透明 / 磨砂开关用的是强调色，单独一套 */
+.glass-switch button.on {
+  background: var(--g-well-accent-bg);
+  border-color: var(--g-well-accent-edge);
+}
+
+/* 预览区底栏与两条弹层：底色本是接近不透明的深色，透明档压一点露出壁纸，
+   同时保留足够对比，文字不至于糊在壁纸上 */
+.adm-preview-foot { background: var(--g-well-foot-bg); }
+.adm-pick-menu,
+.adm-date-pop { background: var(--g-well-pop-bg); }
+
+/* 列表条目：磨砂档靠底色分条，透明档压到贴近无色 */
+.adm-item.on { background: var(--g-well-on-item-bg); border-color: var(--g-well-on-item-edge); }
+
+/* 主页视图：内容超出可滚动 */
+.adm-view--home { min-height: calc(100vh - 70px); }
+
+/* 编辑器视图：占满剩余高度，三栏各自内部滚动 */
+.adm-view--editor {
+  height: calc(100vh - 70px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.adm-view--editor .adm-main {
+  flex: 1;
+  min-height: 0;
+  padding-bottom: 16px;
+}
+
+/* 壁纸视图：内容区可滚动 */
+.adm-view--theme { min-height: calc(100vh - 70px); }
+.adm-view--theme .theme-main { padding-top: 14px; }
+
+@media (max-width: 1280px) {
+  .adm-view--editor { height: auto; overflow: visible; }
+  .adm-view--editor .adm-main { display: grid; grid-template-columns: 300px minmax(0, 1fr); overflow: visible; }
+}
+
+@media (max-width: 860px) {
+  .adm-view--editor .adm-main { display: block; padding-left: 14px; padding-right: 14px; }
+}

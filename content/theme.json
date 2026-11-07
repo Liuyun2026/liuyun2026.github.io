@@ -1,0 +1,17 @@
+{
+  "guest": "/assets/img/wallpaper-guest-1794045247621.jpg",
+  "admin": "/assets/img/wallpaper.jpg",
+  "glass": {
+    "guest": "frosted",
+    "admin": "clear"
+  },
+  "history": [
+    {
+      "url": "/assets/img/wallpaper-guest-1794045247621.jpg",
+      "name": "wallpaper-guest-1794045247621.jpg",
+      "side": "guest",
+      "at": "11-07 17:54",
+      "ts": 1794045247621
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+[
+  {
+    "id": "zynq7020",
+    "title": "Zynq-7020 核心板",
+    "subtitle": "",
+    "category": "硬件",
+    "status": "进行中",
+    "year": "2026",
+    "featured": true,
+    "summary": "XC7Z020-2CLG400核心板：包括哦DDR3*2、eMMC、QSPI、千兆以太网， 以及从12 V 开始的完整电源树",
+    "specs": [
+      [
+        "主控",
+        "XC7Z020-2CLG400"
+      ],
+      [
+        "PS Bank",
+        "500 / 501 / 502"
+      ],
+      [
+        "PL Bank",
+        "0 / 13 / 34 / 35"
+      ],
+      [
+        "存储",
+        "DDR3 · QSPI Flash · eMMC KLM8G1GETF-B041"
+      ],
+      [
+        "以太网",
+        "RTL8211E-VL · RGMII"
+      ],
+      [
+        "时钟",
+        "YXC YSO1 33.3333 MHz 有源晶振"
+      ],
+      [
+        "输入",
+        "12 V DC"
+      ],
+      [
+        "电源树",
+        "2×SY8368（12V→5V）+ 4×TPS62A06（1V0 / 1V8 / 1V5 / 3V3）"
+      ],
+      [
+        "EDA",
+        "KiCad"
+      ]
+    ],
+    "tags": [
+      "Zynq-7000",
+      "DDR3",
+      "RGMII",
+      "eMMC",
+      "电源树",
+      "KiCad"
+    ],
+    "links": []
+  },
+  {
+    "id": "importer",
+    "title": "component-standardized-importer",
+    "subtitle": "KiCad / 嘉立创元件库标准化导入工具",
+    "category": "软件",
+    "status": "开源",
+    "year": "2026",
+    "featured": true,
+    "summary": "KiCad 自带库覆盖不全，嘉立创上的器件在库里找不到，只能一个个手工导入；时间一长，命名和字段全乱。这个工具把导入、命名、字段标准化串成一条流程，开源。",
+    "specs": [
+      [
+        "语言",
+        "Python"
+      ],
+      [
+        "解决的问题",
+        "库缺失 · 元件找不到 · 命名不统一 · 字段混乱"
+      ],
+      [
+        "许可",
+        "开源，禁止商用"
+      ]
+    ],
+    "tags": [
+      "Python",
+      "KiCad",
+      "嘉立创 EDA",
+      "EDA 工具链"
+    ],
+    "links": [
+      {
+        "label": "GitHub 仓库",
+        "url": "https://github.com/Liuyun2026/component-standardized-importer"
+      }
+    ]
+  }
+]
