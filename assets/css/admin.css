@@ -374,7 +374,9 @@
 
 /* ---- 响应式 ---- */
 @media (max-width: 1280px) {
-  body { display: block; height: auto; overflow: auto; }
+  /* 同上方：横向必须 hidden，overflow: auto 会让切换时的 translateX 溢出
+     触发横向滚动条，壁纸层高度被挤掉 15px，表现为上下伸缩 */
+  body { display: block; height: auto; overflow-x: hidden; overflow-y: auto; }
   .adm-main { grid-template-columns: 300px minmax(0, 1fr); overflow: visible; }
   .adm-preview { display: none; }
   .adm-left { overflow: visible; }
@@ -399,7 +401,11 @@
  * home / manage / theme 三个视图在 #admView 内互相替换，切换不整页加载
  * ========================================================================== */
 
-body { display: block; height: auto; overflow: auto; }
+/* 横向必须 hidden：#admView 切换时用 translateX 位移，会横向溢出视口。
+   写成 overflow: auto 会把 style.css 里的 overflow-x: hidden 重置掉，
+   溢出就触发横向滚动条；滚动条占掉 15px 视口高度，position: fixed 的
+   壁纸层随之变矮，cover 重新缩放——表现就是壁纸上下伸缩。 */
+body { display: block; height: auto; overflow-x: hidden; overflow-y: auto; }
 
 .adm-view { position: relative; z-index: 1; }
 
