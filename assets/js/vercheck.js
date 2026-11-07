@@ -33,7 +33,7 @@
 
   /* 请求挂住时主动放弃自检：宁可看旧页面，也不能让片头播到一半再被重载 */
   var ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
-  var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 1500) : null;
+  var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 900) : null;
 
   window.__VERCHECK__ = fetch("/content/build.json?t=" + Date.now(),
       { cache: "no-store", signal: ctrl ? ctrl.signal : undefined })

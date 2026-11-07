@@ -15,7 +15,7 @@
 
   var view = document.getElementById("view");
   var S = null;   /* 内容数据，启动时从 content.json 载入 */
-  var introPending = true;   /* 首页开场动画是否还需要播放 */
+  var pendingRender = false; /* 片头播放期间数据已就绪，收尾后再重建视图 */
   var lastPath = null;       /* 已渲染过的路径，避免同一地址重复渲染 */
   var introTimers = [];      /* 开场动画的全部定时器，点击打断时统一清除 */
   var introRunning = false;
@@ -662,11 +662,20 @@
     introTimers = [];
   }
 
+  /* 片头播放期间数据若已就绪，render 会被挂起。正常收尾、点击跳过、
+     提前退出三条路径都要补这次渲染，否则首帧骨架会一直停在页面上 */
+  function settleRender() {
+    if (!pendingRender) return;
+    pendingRender = false;
+    render();
+  }
+
   /* 解锁页面：顶栏、页脚恢复显示 */
   function introOff() {
     document.documentElement.classList.remove("intro-on", "intro-pending");
     /* 片头结束，补上等待中的壁纸 */
     if (typeof flushWallpaper === "function") flushWallpaper();
+    settleRender();
   }
 
   /* 点击打断：立刻收尾到最终状态，不留半截动画 */
@@ -696,14 +705,16 @@
   }
 
   /* 版本自检未结束前不启动时间轴：旧 HTML 会被 vercheck 重载，
-     若中途启动就会出现片头播一半后整段重播。请求异常时 2 秒兜底放行。 */
+     若中途启动就会出现片头播一半后整段重播。vercheck 的放弃时限是 900ms，
+     兜底必须晚于它，否则慢网络下片头会抢在自检结论之前启动。
+     重载页带 ver-reload 且不再进入片头状态，因此不会重播「你好」。 */
   function afterVerCheck(fn) {
     var vc = window.__VERCHECK__;
     if (!vc || typeof vc.then !== "function") { fn(); return; }
     var fired = false;
     var go = function () { if (fired) return; fired = true; fn(); };
     vc.then(go);
-    window.setTimeout(go, 2000);
+    window.setTimeout(go, 1000);
   }
 
   function playIntro() {
@@ -711,10 +722,9 @@
   }
 
   function playIntroNow() {
+    /* 真实卡片由 index.html 静态提供，首帧就已铺满视口 */
     var card = document.querySelector(".jelly");
-    /* 静态首屏层由 index.html 提供，不在视图 HTML 里重建 */
     var layer = document.getElementById("introLayer");
-    var boot = document.getElementById("introBoot");
     /* 提前退出时必须解锁，否则顶栏/页脚会被首屏脚本藏死 */
     var done = function () {
       var bs = document.querySelector(".bubbles");
@@ -722,7 +732,12 @@
     };
     if (!card || !layer) { introOff(); done(); return; }
 
-    /* 撤掉待播状态；若接着播片头，is-intro 会在同一帧接管显示 */
+    /* 版本自检触发的重载页不再重播片头，避免「你好」出现两次 */
+    if (document.documentElement.classList.contains("ver-reload")) {
+      introOff(); done(); return;
+    }
+    /* 撤掉首帧铺满定位，卡片回到正常布局；同一任务内立刻加 is-intro 反向放大，
+       浏览器只会绘制最终状态，不会闪出正常尺寸 */
     document.documentElement.classList.remove("intro-pending");
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       introOff(); done(); return;
@@ -754,9 +769,6 @@
        这样任意缩放倍数下圆角占宽度的比例恒定，全程都是气泡形态 */
     card.style.transformOrigin = "50% 50%";
     card.style.transform = move + " scale(" + s + ")";
-
-    /* 卡片已铺满且与静态底同色，此时淡出静态底，画面不出现空档 */
-    if (boot) boot.classList.add("fade");
 
     /* 文字层本身就居中于视口，而气泡放大后中心也在视口中心，
        所以开场不需要位移；收缩时再反向跟随气泡回到原位 */
@@ -791,10 +803,14 @@
         card.style.transition = "";
         layer.style.transition = "";
       }, 60);
-        document.documentElement.classList.remove("intro-on");
+      document.documentElement.classList.remove("intro-on");
+      /* 数据若在片头期间就绪，等收尾再重建 #view，避免动画被打断 */
+      settleRender();
       var bubbles = document.querySelector(".bubbles");
       if (bubbles) bubbles.classList.add("play");
+      document.documentElement.classList.add("bubbles-played");
       introRunning = false;
+      flushWallpaper();
     }, 3900);
   }
 
@@ -802,6 +818,8 @@
     if (!S) return;
     var r = route();
     view.innerHTML = r.html;
+    view.classList.remove("is-boot");
+    document.documentElement.classList.remove("boot-hidden");
     document.title = r.title || S.meta.name;
     if (typeof r.mount === "function") r.mount();
 
@@ -818,12 +836,6 @@
 
     window.scrollTo(0, 0);
 
-    /* 同步启动：内容刚写入 DOM、尚未绘制，此时上加缩放变换不会闪出原位 */
-    if (introPending && currentPath() === "/" && !location.hash.replace(/^#\/?/, "").split("/")[0]) {
-      introPending = false;
-      playIntro();
-    }
-
     lastPath = currentPath();
 
     if (slideClass) {
@@ -839,15 +851,27 @@
     /* 首次定位不要动画，之后跟随选中项滑动 */
     movePill(pillReady);
     pillReady = true;
+
+    /* 每次 render 都重建 #view，气泡上的 .play 会一起丢掉。
+       片头已落定时补回一次；bubbles-played 保证切页不重播弹起动画。
+       版本自检重载页不播片头，气泡直接静态就位 */
+    var bs = view.querySelector(".bubbles");
+    if (bs && !document.documentElement.classList.contains("intro-on") &&
+        !document.documentElement.classList.contains("bubbles-played")) {
+      document.documentElement.classList.add("bubbles-played");
+      var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (!reduce && !document.documentElement.classList.contains("ver-reload")) bs.classList.add("play");
+    }
   }
 
   /* ---------- 左右滑动切换 ----------
-   * 顺序：首页 → 项目 → 笔记 → 资料
+   * 顺序必须与顶栏一致：首页 → 项目 → 笔记 → 资料 → 日志与碎碎念。
+   * 点击顶栏链接时也用这张表算方向，位置写错会让新页从错误的一侧滑入。
    * 左滑进入下一项（新页从右侧进），右滑返回上一项
    * 详情页（#/note/xxx、#/project/xxx）不参与滑动，避免和返回逻辑冲突
    */
   function pageOrder() {
-    return ["", "journal", "projects", "notes", "files"];
+    return ["", "projects", "notes", "files", "journal"];
   }
   var slideClass = "";
 
@@ -981,6 +1005,13 @@
 
   initSwipe();
 
+  /* 片头不等内容 JSON：真实卡片已在 HTML 首帧里，脚本就绪即启动时间轴。
+     六个 JSON 在后台并行加载，就绪时若片头还在播放，就把 render 排到收尾，
+     避免重建 #view 打断卡片动画 */
+  if (document.documentElement.classList.contains("intro-pending") && currentPath() === "/") {
+    playIntro();
+  }
+
   /* 内容按类别拆在 content/ 目录下，与代码区分离。
      请求带时间戳：绕开浏览器与 CDN 对 JSON 的缓存，保存后刷新立即生效 */
   var PARTS = ["meta", "projects", "notes", "files", "journal", "theme"];
@@ -1005,11 +1036,17 @@
       };
       applyWallpaper(S.theme && S.theme.guest);
       initStatic();
-      render();
+      if (document.documentElement.classList.contains("intro-on")) pendingRender = true;
+      else render();
     })
     .catch(function () {
-      /* 加载失败时解锁页面，顶栏与页脚正常显示错误提示 */
+      /* 加载失败时停掉时间轴并解锁页面，顶栏与页脚正常显示错误提示 */
+      clearIntroTimers();
+      introRunning = false;
       introOff();
+      pendingRender = false;
+      view.classList.remove("is-boot");
+      document.documentElement.classList.remove("boot-hidden");
       view.innerHTML =
         '<div class="wrap"><div class="empty">内容加载失败，请刷新页面重试</div></div>';
     });

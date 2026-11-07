@@ -9,44 +9,48 @@
 <meta name="theme-color" content="#070910">
 <link rel="preload" as="image" href="/assets/img/wallpaper.jpg">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237FB2FF'/%3E%3Cstop offset='1' stop-color='%234FE3C1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='%230B0F16'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='15' font-weight='bold' fill='url(%23g)' text-anchor='middle'%3EL%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="/assets/css/style.css?v=202611072059">
-<script src="/assets/js/pageflow.js?v=202611072059"></script>
-<script>window.__BUILD__="202611072059";</script>
-<script src="/assets/js/vercheck.js?v=202611072059"></script>
+<link rel="stylesheet" href="/assets/css/style.css?v=202611072256">
+<script src="/assets/js/pageflow.js?v=202611072256"></script>
+<script>window.__BUILD__="202611072256";</script>
+<script src="/assets/js/vercheck.js?v=202611072256"></script>
 </head>
 <body>
 
 <script>
 /* 首屏判定，全部在第一次绘制前完成：
-   1. 首页播开场动画 → 藏顶栏与页脚，把卡片预置为「待播」，同时显示静态首屏层
-      （满屏底色 + 「你好」），不等 JSON 就能出画面
+   1. 首页首次进入播开场动画 → 藏顶栏与页脚，CSS 把 HTML 里已有的真实 .jelly
+      铺满视口。玻璃、弧形高光、亮边从第一帧就存在，不等任何 JSON
    2. 带 from=admin（从管理端进入）→ 顶栏直接以六项形态出现，
       由 CSS 控制显隐，不需要等 JS 插入，因此不会先显示四项再补两项
-   3. 版本自检触发的重载会带 v= 参数，此轮不再重播「你好」的入场淡入
+   3. 非首页路径（含 404.html 兜底的深层地址）→ 骨架先隐藏，
+      等数据就绪由 render() 一次性换成目标视图，不闪出首页卡片
+   4. 版本自检触发的重载带 v= 参数，此轮不进片头状态，卡片保持正常尺寸
 
    注意：所有标记只能加在 documentElement 上，CSS 一律用 html.* 选择器匹配。 */
 (function () {
   try {
     var p = location.pathname.replace(/\/+$/, "") || "/";
     var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var de = document.documentElement;
 
     if (/(^|[?&])from=admin(&|$)/.test(location.search)) {
-      document.documentElement.classList.add("from-admin");
+      de.classList.add("from-admin");
     }
     if (/(^|[?&])v=[0-9]{12}(&|$)/.test(location.search)) {
-      document.documentElement.classList.add("ver-reload");
+      de.classList.add("ver-reload");
+      return;
     }
-
-    if (p !== "/") return;
-    if (location.hash && location.hash !== "#/") return;
+    if (p !== "/" || (location.hash && location.hash !== "#/")) {
+      de.classList.add("boot-hidden");
+      return;
+    }
     if (reduce) return;
 
-    document.documentElement.classList.add("intro-on", "intro-pending");
+    de.classList.add("intro-on", "intro-pending");
 
     /* 兜底：脚本异常导致时间轴始终没启动时放出页面，避免长时间锁死。
        正常路径下片头会等版本自检完成后自行启动，用不到这个兜底 */
     window.setTimeout(function () {
-      var de = document.documentElement;
       if (de.classList.contains("intro-pending") && !document.querySelector(".jelly.is-intro")) {
         de.classList.remove("intro-pending", "intro-on");
       }
@@ -57,9 +61,8 @@
 
 <div class="bg" aria-hidden="true"></div>
 
-<!-- 开场静态首屏：HTML 解析到即出画面，不依赖内容 JSON。
-     时间轴由 app.js 在版本自检与数据就绪后接管，不重播「你好」。 -->
-<div class="intro-boot" id="introBoot" aria-hidden="true"></div>
+<!-- 开场首帧直接使用真实的果冻卡片（见 #view），由 CSS 在 intro-pending 下铺满视口。
+     不再用仿制的静态底色层：玻璃、弧形高光、亮边从头到尾都是同一张卡片。 -->
 <div class="intro-layer on" id="introLayer" aria-hidden="true">
   <div class="intro-hello show"><span>你</span><span>好</span></div>
   <div class="intro-welcome">欢迎来到<span class="hl">流雲</span>的创客空间</div>
@@ -91,7 +94,25 @@
   </div>
 </header>
 
-<main id="view"></main>
+<!-- 首帧骨架：片头需要 .jelly 在被放大的那一刻就存在。
+     内容 JSON 在后台并行加载，就绪后由 app.js 补齐下方列表与计数；
+     在此之前 intro-pending 会把这张卡片铺满视口，文字层单独叠在其上。
+     is-boot 只用于非首页路径在等数据期间隐藏骨架，render() 时移除。 -->
+<main id="view" class="is-boot">
+  <div class="home">
+    <section class="hero-jelly">
+      <div class="jelly">
+        <span class="jelly-tag">你好</span>
+        <h1>欢迎来到<span class="hl">流雲</span>的创客空间</h1>
+        <div class="jelly-meta">
+          <span class="pill"><i class="dot"></i>站点</span>
+          <a class="pill pill--link" href="https://github.com/Liuyun2026" target="_blank" rel="noopener">GitHub ↗</a>
+        </div>
+      </div>
+    </section>
+    <nav class="bubbles"></nav>
+  </div>
+</main>
 
 <footer>
   <div class="foot-inner">
@@ -100,6 +121,6 @@
   </div>
 </footer>
 
-<script src="/assets/js/app.js?v=202611072059"></script>
+<script src="/assets/js/app.js?v=202611072256"></script>
 </body>
 </html>

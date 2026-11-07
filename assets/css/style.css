@@ -223,8 +223,9 @@ html.intro-on .nav {
   animation: pulse 2.8s ease-in-out infinite;
   flex-shrink: 0;
 }
-/* 内容 / 壁纸页未连接时状态点转红，已连接保持绿 */
-.nav-status.is-off .dot {
+/* 未连接时状态点转红，已连接保持绿；管理端首页胶囊同样跟随连接状态 */
+.nav-status.is-off .dot,
+.jelly-meta .pill .dot.is-off {
   background: #E5484D;
   box-shadow: 0 0 0 3px rgba(229, 72, 77, .18);
 }
@@ -360,17 +361,10 @@ html.intro-on .nav {
   transform: translateY(14px);
   transition: none;
 }
-/* 铺满时不用 backdrop-filter：放大后的元素每帧都要重算整屏模糊，直接卡死。
-   改用烘焙好的深色渐变顶替，但弧形高光、顶部亮边、底部反光全部保留，
-   与静态首屏层 .intro-boot 用同一套配方，淡出交接时光泽不出现、也不消失 */
-.jelly.is-intro {
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  background: linear-gradient(168deg, rgba(30, 39, 55, .82), rgba(10, 14, 20, .94));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, .38),
-    inset 0 -40px 80px -60px rgba(127, 178, 255, .55);
-}
+/* 放大态只隐藏内容并声明合成层：玻璃渐变、backdrop-filter、弧形高光、亮边、
+   底部反光全部沿用 .jelly 本身。首帧、放大、收缩、最终是同一张卡片，
+   不存在第二套外观，光泽也就不会在动画中途突然出现 */
+.jelly.is-intro { will-change: transform; }
 
 /* 开场文字层：绝对定位在卡片内部，随卡片一起缩放，不会飘在屏幕中央 */
 /* 页面级固定层，居中于视口；只跟随气泡的位移，不参与缩放 */
@@ -430,47 +424,28 @@ html.intro-on .nav {
 .intro-welcome .hl { color: #A9CBFF; }
 .intro-welcome.in { opacity: 1; transform: none; }
 
-/* ---- 开场静态首屏 ----
-   HTML 里直接给出满屏底色与「你好」，首帧即可见，不等内容 JSON。
-   时间轴接管后底色淡出，露出已铺满的真实卡片；两者同色，接缝不可见。
-   非片头页面（含深层路径与 SPA 内其它视图）整层不显示。 */
-.intro-boot {
+/* ---- 开场首帧 ----
+   HTML 里本来就有真实的 .jelly 卡片；intro-pending 期间用 CSS 把它铺满视口。
+   玻璃渐变、backdrop-filter、弧形高光、亮边、底部反光都是这张卡片自己的属性，
+   没有仿制层，也没有「先显示假底、再淡出换成真卡片」的交接。
+   时间轴接管时撤掉铺满定位、量出原始尺寸，再用 FLIP 反向放大同一张卡片。 */
+html.intro-pending .jelly {
   position: fixed;
   inset: 0;
-  z-index: 44;
-  pointer-events: none;
-  overflow: hidden;
-  opacity: 0;
-  transition: opacity .42s ease;
-  /* 首帧就是一张铺满视口的玻璃气泡：底色、内高光、弧形反光与
-     .jelly.is-intro 完全一致，时间轴接管时交叉淡化，光泽全程连续 */
-  background: linear-gradient(168deg, rgba(30, 39, 55, .82), rgba(10, 14, 20, .94));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, .38),
-    inset 0 -40px 80px -60px rgba(127, 178, 255, .55);
+  z-index: 40;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
 }
-.intro-boot::before {
-  content: "";
-  position: absolute;
-  top: -46%;
-  left: 8%;
-  width: 84%;
-  height: 90%;
-  border-radius: 50%;
-  background: radial-gradient(ellipse at center, rgba(255, 255, 255, .26), rgba(255, 255, 255, .06) 42%, transparent 72%);
-  pointer-events: none;
-}
-.intro-boot::after {
-  content: "";
-  position: absolute;
-  left: 0; right: 0; bottom: 0;
-  height: 40%;
-  background: linear-gradient(180deg, transparent, rgba(127, 178, 255, .09));
-  pointer-events: none;
-}
-html.intro-pending .intro-boot:not(.fade) { opacity: 1; }
-.intro-boot.fade { opacity: 0; }
-html:not(.intro-on) .intro-boot,
+html.intro-pending .jelly > * { opacity: 0; }
+
+/* 非首页路径（含 404.html 兜底的深层地址）在等数据期间不显示首页骨架，
+   render() 移除 .is-boot 后一次性换成目标视图 */
+html.boot-hidden #view.is-boot { visibility: hidden; }
+
 html:not(.intro-on) .intro-layer { display: none; }
 html.intro-pending .intro-hello { animation: boot-hello .5s ease both; }
 html.ver-reload .intro-hello { animation: none; }
@@ -510,10 +485,8 @@ html.ver-reload .intro-hello { animation: none; }
   transition: transform .5s var(--ease), box-shadow .5s var(--ease), border-color .3s;
   animation: none;
 }
-/* 片头待播：卡片在首帧就隐藏，等 JS 算好铺满缩放再一次性显示，
-   避免"正常尺寸 → 突然放大"的闪动。is-intro 一上就可见，中间不留空档 */
-html.intro-pending .jelly { opacity: 0; }
-html.intro-pending .jelly.is-intro { opacity: 1; }
+/* 首帧铺满由上面的 intro-pending 规则负责，卡片始终可见，不透明度全程为 1。
+   JS 撤掉 intro-pending 与加上 is-intro 在同一个任务里完成，不会闪出正常尺寸。 */
 
 /* 卡片落定后由 JS 加上 .play，气泡自下而上依次弹起 */
 html.intro-on .bubbles,

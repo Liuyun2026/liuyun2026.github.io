@@ -118,17 +118,23 @@
     if (!s) return;
     s.textContent = text;
     s.classList.toggle("on", !!on);
-    /* 「未连接」用红点，其余状态（管理端 / 已连接）保持绿点 */
+    /* 顶栏按文案判定；主页胶囊按令牌判定，未填令牌时一律红点 */
     var box = s.closest ? s.closest(".nav-status") : null;
     if (box) box.classList.toggle("is-off", text === "未连接");
+    var connected = !!token();
+    [].forEach.call(document.querySelectorAll(".jelly-meta .pill .dot"), function (d) {
+      d.classList.toggle("is-off", !connected);
+    });
   }
 
   function syncStatusForView(v) {
+    var connected = !!token();
     if (v === "home") {
-      setStatus("管理端", false);
+      /* 主页文案固定为「管理端」，但胶囊与顶栏的点跟随连接状态 */
+      setStatus("管理端", connected);
       return;
     }
-    if (token()) setStatus("已连接", true);
+    if (connected) setStatus("已连接", true);
     else setStatus("未连接", false);
   }
 
@@ -226,14 +232,15 @@
   }
 
   /* 版本自检未结束前不启动时间轴：旧 HTML 会被 vercheck 重载，
-     若中途启动就会出现片头播一半后整段重播。请求异常时 2 秒兜底放行。 */
+     若中途启动就会出现片头播一半后整段重播。自检慢时 500ms 兜底放行，
+     重载页带 ver-reload 会跳过片头，因此不会重播「你好」。 */
   function afterVerCheck(fn) {
     var vc = window.__VERCHECK__;
     if (!vc || typeof vc.then !== "function") { fn(); return; }
     var fired = false;
     var go = function () { if (fired) return; fired = true; fn(); };
     vc.then(go);
-    window.setTimeout(go, 2000);
+    window.setTimeout(go, 500);
   }
 
   /* short = SPA 内切回主页的短版：只弹气泡，不受版本自检阻塞。
@@ -247,15 +254,18 @@
   }
 
   function playIntroNow(done) {
+    /* 真实卡片由 admin/index.html 静态提供，首帧就已铺满视口 */
     var card = document.querySelector(".jelly");
-    /* 静态首屏层由 admin/index.html 提供，不在视图 HTML 里重建 */
     var layer = document.getElementById("introLayer");
-    var boot = document.getElementById("introBoot");
 
+    /* 版本自检触发的重载页不播片头，气泡直接静态就位，避免「你好」出现两次 */
+    if (document.documentElement.classList.contains("ver-reload")) {
+      introOff(); return;
+    }
     if (!card || !layer) { introOff(); done(); return; }
     if (reduceMotion()) { introOff(); done(); return; }
 
-    /* 撤掉待播状态：卡片此刻由 is-intro 接管显示 */
+    /* 撤掉首帧铺满定位，同一任务内立刻加 is-intro 反向放大，不闪出正常尺寸 */
     document.documentElement.classList.remove("intro-pending");
 
     var hello = layer.querySelector(".intro-hello");
@@ -282,9 +292,6 @@
 
     card.style.transformOrigin = "50% 50%";
     card.style.transform = move + " scale(" + s + ")";
-
-    /* 卡片已铺满且与静态底同色，此时淡出静态底，画面不出现空档 */
-    if (boot) boot.classList.add("fade");
 
     layer.style.transform = "translate3d(0,0,0)";
     layer.classList.add("on");
