@@ -59,9 +59,35 @@
 
   /* ---------- 壁纸 ---------- */
 
-  function applyAdminWallpaper(url) {
+  /* 壁纸先离屏解码再换背景，避免主线程整图解码撞上开场动画；
+     片头期间挂起，动画结束后再换 */
+  var pendingWallpaper = "";
+
+  function paintWallpaper(url) {
     var bg = document.querySelector(".bg");
-    if (bg && url) bg.style.backgroundImage = 'url("' + url + '")';
+    if (!bg || !url) return;
+    var probe = new Image();
+    probe.decoding = "async";
+    probe.onload = function () {
+      bg.style.backgroundImage = 'url("' + url + '")';
+    };
+    probe.src = url;
+  }
+
+  function applyAdminWallpaper(url) {
+    if (!url) return;
+    if (document.body.classList.contains("intro-on")) {
+      pendingWallpaper = url;
+      return;
+    }
+    paintWallpaper(url);
+  }
+
+  function flushWallpaper() {
+    if (!pendingWallpaper) return;
+    var url = pendingWallpaper;
+    pendingWallpaper = "";
+    paintWallpaper(url);
   }
 
   function loadTheme() {
@@ -167,6 +193,8 @@
   function introOff() {
     document.body.classList.remove("intro-on");
     document.documentElement.classList.remove("intro-on");
+    /* 片头结束，补上等待中的壁纸 */
+    flushWallpaper();
   }
 
   function skipIntro() {
@@ -528,8 +556,54 @@
 
   function b64FromBuf(buf) {
     var bytes = new Uint8Array(buf), bin = "";
-    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    var CHUNK = 8192;
+    for (var i = 0; i < bytes.length; i += CHUNK) {
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+    }
     return btoa(bin);
+  }
+
+  /* ---------- 图片压缩 ----------
+   * 手机直出的照片常有 3~8MB，直接传会明显卡：上传慢、预览慢、
+   * base64 体积膨胀三分之一、提交也慢。这里统一缩到长边 2400px、
+   * JPEG 质量 0.82，肉眼几乎无差，体积通常降到 200~400KB。
+   */
+  var IMG_MAX_EDGE = 2400;
+  var IMG_QUALITY = 0.82;
+
+  function compressImage(file) {
+    /* 动图与矢量图不处理，避免丢帧或栅格化 */
+    if (!/^image\/(jpeg|jpg|png|webp)$/i.test(file.type)) return Promise.resolve(file);
+    if (file.size < 350 * 1024) return Promise.resolve(file);
+
+    return new Promise(function (resolve) {
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        URL.revokeObjectURL(url);
+
+        var w = img.naturalWidth, h = img.naturalHeight;
+        var scale = Math.min(1, IMG_MAX_EDGE / Math.max(w, h));
+        var tw = Math.round(w * scale), th = Math.round(h * scale);
+
+        var cv = document.createElement("canvas");
+        cv.width = tw;
+        cv.height = th;
+        var ctx = cv.getContext("2d");
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(img, 0, 0, tw, th);
+
+        cv.toBlob(function (blob) {
+          if (!blob || blob.size >= file.size) { resolve(file); return; }
+          resolve(new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" }));
+        }, "image/jpeg", IMG_QUALITY);
+      };
+      img.onerror = function () {
+        URL.revokeObjectURL(url);
+        resolve(file);
+      };
+      img.src = url;
+    });
   }
 
   function safeName(n) {
@@ -573,10 +647,12 @@
     inp.onchange = function () {
       if (!inp.files.length) return;
       var f = inp.files[0];
-      msg("上传图片中…");
-      uploadOne(f, "images", "").then(function (url) {
-        insertAt(ta, "![" + f.name.replace(/\.[^.]+$/, "") + "](" + url + ")");
-        msg("图片已插入，记得保存", "ok");
+      msg("压缩并上传中…");
+      compressImage(f).then(function (out) {
+        return uploadOne(out, "images", "").then(function (url) {
+          insertAt(ta, "![" + out.name.replace(/\.[^.]+$/, "") + "](" + url + ")");
+          msg("图片已插入（" + Math.round(out.size / 1024) + " KB），记得保存", "ok");
+        });
       }).catch(function (e) { msg(e.message, "err"); });
     };
     inp.click();
@@ -990,32 +1066,40 @@
     if (!tk) { msg("请先填入令牌并连接", "err"); return; }
     if (file.size > 20 * 1024 * 1024) { msg("图片超过 20MB，请压缩后再传", "err"); return; }
 
-    msg("上传壁纸中…");
-    var ext = (String(file.name).toLowerCase().match(/\.(png|jpe?g|webp|gif|avif)$/) || [0, "jpg"])[1].replace("jpeg", "jpg");
-    var rel = "assets/img/wallpaper-" + side + "-" + Date.now() + "." + ext;
-    var api = "https://api.github.com/repos/" + OWNER + "/" + REPO + "/contents/" + rel;
+    msg("压缩并上传中…");
 
-    file.arrayBuffer().then(function (buf) {
-      return fetch(api, {
-        method: "PUT",
-        headers: {
-          "Authorization": "Bearer " + tk,
-          "Accept": "application/vnd.github+json",
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          message: "上传壁纸（" + side + "）：" + file.name,
-          content: b64FromBuf(buf),
-          branch: BRANCH
-        })
+    /* 先压缩再上传：体积降到十分之一，上传与后续提交都明显更快 */
+    compressImage(file).then(function (out) {
+      var sizeKB = Math.round(out.size / 1024);
+      var isJpg = /jpeg|jpg/i.test(out.type);
+      var ext = isJpg ? "jpg"
+        : (String(out.name).toLowerCase().match(/\.(png|jpe?g|webp|gif|avif)$/) || [0, "jpg"])[1].replace("jpeg", "jpg");
+
+      var rel = "assets/img/wallpaper-" + side + "-" + Date.now() + "." + ext;
+      var api = "https://api.github.com/repos/" + OWNER + "/" + REPO + "/contents/" + rel;
+
+      return out.arrayBuffer().then(function (buf) {
+        return fetch(api, {
+          method: "PUT",
+          headers: {
+            "Authorization": "Bearer " + tk,
+            "Accept": "application/vnd.github+json",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            message: "上传壁纸（" + side + "）：" + out.name,
+            content: b64FromBuf(buf),
+            branch: BRANCH
+          })
+        });
+      }).then(function (r) {
+        if (!r.ok) return r.text().then(function () { throw new Error("上传失败 " + r.status); });
+        themeState[side] = "/" + rel;
+        refreshPreview(side);
+        themeDirty = true;
+        applyThemeLocal();
+        msg("已上传（" + sizeKB + " KB），点「保存并发布」后生效", "ok");
       });
-    }).then(function (r) {
-      if (!r.ok) return r.text().then(function () { throw new Error("上传失败 " + r.status); });
-      themeState[side] = "/" + rel;
-      refreshPreview(side);
-      themeDirty = true;
-      applyThemeLocal();
-      msg("已上传，点「保存并发布」后生效", "ok");
     }).catch(function (e) { msg(e.message, "err"); });
   }
 

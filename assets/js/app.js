@@ -660,6 +660,8 @@
   function introOff() {
     document.body.classList.remove("intro-on");
     document.documentElement.classList.remove("intro-on");
+    /* 片头结束，补上等待中的壁纸 */
+    if (typeof flushWallpaper === "function") flushWallpaper();
   }
 
   /* 点击打断：立刻收尾到最终状态，不留半截动画 */
@@ -866,10 +868,37 @@
 
   /* ---------- 静态部分 ---------- */
 
-  /* 壁纸由 content/theme.json 决定，缺省时用内置图 */
-  function applyWallpaper(url) {
+  /* 壁纸由 content/theme.json 决定，缺省时用内置图。
+     先离屏解码再换背景：直接赋值会在主线程解码整图，若正好撞上开场动画就掉帧。
+     片头播放期间先挂起，动画结束后再换，避免抢动画的帧。 */
+  var pendingWallpaper = "";
+
+  function paintWallpaper(url) {
     var bg = document.querySelector(".bg");
-    if (bg && url) bg.style.backgroundImage = 'url("' + url + '")';
+    if (!bg || !url) return;
+    var probe = new Image();
+    probe.decoding = "async";
+    probe.onload = function () {
+      bg.style.backgroundImage = 'url("' + url + '")';
+    };
+    probe.src = url;
+  }
+
+  function applyWallpaper(url) {
+    if (!url) return;
+    if (document.body.classList.contains("intro-on")) {
+      pendingWallpaper = url;
+      return;
+    }
+    paintWallpaper(url);
+  }
+
+  /* 片头结束时由 introOff 调用，补上被挂起的壁纸 */
+  function flushWallpaper() {
+    if (!pendingWallpaper) return;
+    var url = pendingWallpaper;
+    pendingWallpaper = "";
+    paintWallpaper(url);
   }
 
   function initStatic() {

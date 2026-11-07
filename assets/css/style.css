@@ -1174,26 +1174,6 @@ body.pf-entering { animation: pf-fade-in .22s ease both; }
 html.from-admin [data-nav-extra] { display: block; }
 /* 访客端不该出现的入口，从管理端进来时才露出 */
 
-/* ---- 跨文档视图过渡（pageflow 的增强层） ----
-   Chrome/Edge 126+ 支持同源跨文档过渡：导航由浏览器直接做交叉淡化，
-   即使目标页还在加载也不会白屏。其他浏览器自动回退到 pageflow 的淡出淡入 */
-@view-transition { navigation: auto; }
-
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: .26s;
-  animation-timing-function: ease;
-}
-::view-transition-old(root) { animation-name: vt-out; }
-::view-transition-new(root) { animation-name: vt-in; }
-
-@keyframes vt-out {
-  to { opacity: 0; transform: translateX(-14px); }
-}
-@keyframes vt-in {
-  from { opacity: 0; transform: translateX(14px); }
-}
-
 /* ---- 日志与碎碎念：时间线 ---- */
 .jlist { position: relative; }
 .jrow {
