@@ -667,14 +667,6 @@
       introOff(); done(); return;
     }
 
-    /* 开场动画每次会话只播一次：站内回首页或跨页返回时不再重播 */
-    try {
-      if (sessionStorage.getItem("home-intro-played") === "1") {
-        introOff(); done(); return;
-      }
-      sessionStorage.setItem("home-intro-played", "1");
-    } catch (e) {}
-
     var hello = layer.querySelector(".intro-hello");
     var welcome = layer.querySelector(".intro-welcome");
     if (!hello || !welcome) { introOff(); done(); return; }

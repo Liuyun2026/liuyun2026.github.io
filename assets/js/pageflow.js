@@ -25,6 +25,12 @@
     return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }
 
+  /* 浏览器是否支持跨文档视图过渡（Chrome/Edge 126+）
+     支持时过渡交给原生 @view-transition，自家淡出淡入全部让位 */
+  function hasVT() {
+    return "onpagereveal" in window;
+  }
+
   function norm(p) {
     return String(p || "").replace(/\/+$/, "") || "/";
   }
@@ -104,11 +110,12 @@
     leaving = true;
     prefetch(u);
 
+    /* 浏览器支持跨文档视图过渡时，过渡由原生完成：直接跳，不叠加自家淡出 */
+    if (hasVT() || reduceMotion()) { location.href = u.href; return; }
+
     try { sessionStorage.setItem(NAV_KEY, "1"); } catch (err) {}
 
     var go = function () { location.href = u.href; };
-
-    if (reduceMotion()) { go(); return; }
 
     document.documentElement.classList.add("pf-leaving");
     window.setTimeout(go, LEAVE_MS);
@@ -116,6 +123,9 @@
 
   /* ---- 3. 进入时淡入 ---- */
   function enter() {
+    /* 支持原生跨文档过渡的浏览器不叠加自家淡入 */
+    if (hasVT()) return;
+
     var came = false;
     try {
       came = sessionStorage.getItem(NAV_KEY) === "1";
@@ -146,4 +156,32 @@
       document.documentElement.classList.remove("pf-leaving");
     }
   });
+
+  /* ---- 4. 空闲预热：把常用页全部拉进缓存 ----
+     无论从哪一端出发，点击时目标 HTML 基本都已在本地 */
+  var WARM_TARGETS = [
+    "/", "/admin/", "/manage/", "/theme/", "/manual/",
+    "/projects?from=admin", "/notes?from=admin", "/files?from=admin"
+  ];
+
+  function warmAll() {
+    var here = norm(location.pathname) + location.search;
+    WARM_TARGETS.forEach(function (p) {
+      if (norm(p.split("?")[0]) === norm(location.pathname)) return;
+      try {
+        prefetch(new URL(p, location.origin));
+      } catch (e) {}
+    });
+  }
+
+  function idle(fn) {
+    if (window.requestIdleCallback) window.requestIdleCallback(fn, { timeout: 2500 });
+    else window.setTimeout(fn, 1200);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () { idle(warmAll); });
+  } else {
+    idle(warmAll);
+  }
 })();

@@ -192,7 +192,9 @@
     introOff();
   }
 
-  function playIntro() {
+  /* short = 视图切换时的短版：只弹气泡，不再全屏重演。
+     整页进入 /admin/ 时的完整版沿用原时间轴。 */
+  function playIntro(short) {
     var card = document.querySelector(".jelly");
     var layer = document.querySelector(".intro-layer");
     var bubbles = document.querySelector(".bubbles");
@@ -202,11 +204,7 @@
     if (!card || !layer) { introOff(); done(); return; }
     if (reduceMotion()) { introOff(); done(); return; }
 
-    /* 每个会话只播一次：视图来回切换不再重复四秒动画 */
-    try {
-      if (sessionStorage.getItem("adm-intro-played") === "1") { introOff(); done(); return; }
-      sessionStorage.setItem("adm-intro-played", "1");
-    } catch (e) {}
+    if (short) { introOff(); done(); return; }
 
     var hello = layer.querySelector(".intro-hello");
     var welcome = layer.querySelector(".intro-welcome");
@@ -262,6 +260,8 @@
     }, 3900);
   }
 
+  var firstAdmRender = true;
+
   function mountHome() {
     /* 动画结束前点击任意处可跳过 */
     var guard = function (e) {
@@ -273,7 +273,8 @@
     document.addEventListener("touchstart", guard, { capture: true, passive: false });
     document.addEventListener("mousedown", guard, true);
 
-    playIntro();
+    /* 整页进入播完整版；SPA 内切回主页播短版（只弹气泡） */
+    playIntro(!firstAdmRender);
   }
 
   /* ==========================================================================
@@ -1142,7 +1143,9 @@
     markNav(v);
     syncStatusForView(v);
     window.scrollTo(0, 0);
+    var wasFirst = firstAdmRender;
     if (typeof def.mount === "function") def.mount();
+    firstAdmRender = false;
   }
 
   function dirtyNow() {
