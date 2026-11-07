@@ -30,11 +30,17 @@
       if (!remote || remote === local) return;
 
       sessionStorage.setItem(guardKey, remote);
-      var next = location.pathname + "?v=" + remote;
-      if (location.search && location.search.length > 1) {
-        next = location.pathname + location.search.replace(/([?&])v=[^&]*/, "$1v=" + remote);
+
+      /* 保留原有查询参数（如 from=admin），只替换或追加 v 作为缓存破坏符 */
+      var params = [];
+      var raw = location.search.replace(/^\?/, "");
+      if (raw) {
+        params = raw.split("&").filter(function (kv) {
+          return kv && kv.indexOf("v=") !== 0;
+        });
       }
-      location.replace(next);
+      params.push("v=" + remote);
+      location.replace(location.pathname + "?" + params.join("&"));
     })
     .catch(function () {});
 })();
