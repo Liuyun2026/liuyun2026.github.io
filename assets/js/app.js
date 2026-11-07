@@ -145,10 +145,32 @@
     return path + (path.indexOf("?") >= 0 ? "&" : "?") + "from=admin";
   }
 
-  function syncHomeLink() {
-    var home = document.querySelector('#navLinks a[data-nav=""]');
+  /* 顶栏随来源切换形态：
+   *   纯访客访问 —— 首页 / 项目 / 笔记 / 资料 四项，首页指访客站
+   *   带 from=admin —— 补齐 内容 / 壁纸，成为管理端的六项，首页指管理端主页
+   * 每次 render 都会调用，函数自身保证幂等。
+   */
+  function syncNavOrigin() {
+    var nav = document.getElementById("navLinks");
+    if (!nav) return;
+
+    var admin = fromAdmin();
+    var extra = nav.querySelectorAll("[data-nav-extra]");
+    var haveExtra = extra.length > 0;
+
+    if (admin && !haveExtra) {
+      nav.insertAdjacentHTML("beforeend",
+        '<a href="/manage/?from=admin" data-nav-extra="">内容</a>' +
+        '<a href="/theme/?from=admin" data-nav-extra="">壁纸</a>');
+    } else if (!admin && haveExtra) {
+      [].forEach.call(extra, function (a) { a.parentNode.removeChild(a); });
+    }
+
+    nav.classList.toggle("nav-links--admin", admin);
+
+    var home = nav.querySelector('a[data-nav=""]');
     if (!home) return;
-    if (fromAdmin()) {
+    if (admin) {
       home.setAttribute("href", "/admin/");
       home.setAttribute("title", "回管理端主页");
     } else {
@@ -733,8 +755,8 @@
       a.classList.toggle("on", a.getAttribute("data-nav") === key);
     });
 
-    /* 顶栏「首页」按来源指路：从管理端进来的回管理端主页 */
-    syncHomeLink();
+    /* 顶栏按来源切形态：管理端进来的补内容/壁纸，首页指回管理端 */
+    syncNavOrigin();
 
     window.scrollTo(0, 0);
 
