@@ -473,10 +473,7 @@
           '<div class="flist" id="flist">' +
             (all.length ? all.map(fileRow).join("") : '<div class="empty">暂无内容</div>') +
           "</div>" +
-          '<div class="hint">' +
-            "资料条目在管理端添加，填名称、类型与网盘链接即可。" +
-            "类型取 <code>datasheet / manual / tool / image / other</code>，对应列表左侧的小标签。" +
-          "</div>" +
+          (all.length ? '<div class="hint">点条目直接打开；带链接的会另开页面。</div>' : "") +
         "</section>" +
       "</div>",
       mount: function () {
