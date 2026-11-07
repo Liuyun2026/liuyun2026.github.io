@@ -538,6 +538,30 @@
     "</div>";
   }
 
+  /* 区块快速跳转气泡：首页 / 项目 / 笔记 / 资料。
+     复用首页卡片下方的同款玻璃珠样式，放在内容页顶部，保持全站导航一致。 */
+  var SECTION_ICONS = {
+    home: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11 12 4l8 7"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/></svg>',
+    projects: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 20.5 7v10L12 21.2 3.5 17V7z"/><path d="M3.5 7 12 11.4 20.5 7M12 11.4V21.2"/></svg>',
+    notes: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h9L19 7.5v13H6z"/><path d="M14.5 3.5V8H19"/><path d="M9 12h7M9 15.5h7M9 8.5h2.5"/></svg>',
+    files: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg>'
+  };
+  function sectionBubblesHtml(keys) {
+    var labels = {
+      home: ["首页", "Home"],
+      projects: ["项目", "Projects"],
+      notes: ["笔记", "Notes"],
+      files: ["资料", "Files"]
+    };
+    return '<nav class="bubbles">' + keys.map(function (k) {
+      var lb = labels[k];
+      return '<a class="bubble" href="' + (k === "home" ? "/" : "/" + k) + '">' +
+        '<span class="bubble-ico">' + SECTION_ICONS[k] + '</span>' +
+        '<span class="bubble-t">' + lb[0] + '</span>' +
+        '<span class="bubble-e">' + lb[1] + '</span></a>';
+    }).join("") + '</nav>';
+  }
+
   function viewJournal() {
     var all = (S.journal || []).slice().sort(function (a, b) {
       return (b.date || "").localeCompare(a.date || "");
@@ -545,6 +569,7 @@
     return {
       title: S.meta.name + "的日志与碎碎念",
       html: '<div class="wrap">' +
+        sectionBubblesHtml(["home", "projects", "notes", "files"]) +
         '<section class="block">' +
           secHead("JOURNAL", "日志与碎碎念", all.length + " 条") +
           '<div class="jlist">' +
