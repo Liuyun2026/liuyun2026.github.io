@@ -1630,7 +1630,10 @@
     current = v;
     markNav(v);
     syncStatusForView(v);
-    window.scrollTo(0, 0);
+    /* 滚动发生在 .page 内部，视口本身不滚动，归零要打在滚动容器上 */
+    var pg = document.querySelector(".page");
+    if (pg) pg.scrollTop = 0;
+    else window.scrollTo(0, 0);
     var wasFirst = firstAdmRender;
     if (typeof def.mount === "function") def.mount();
     firstAdmRender = false;
