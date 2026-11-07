@@ -24,6 +24,11 @@
   var current = "";        /* 当前渲染的视图名 */
   var transitioning = false;
   var themeState = { guest: DEFAULT_WALLPAPER, admin: DEFAULT_WALLPAPER };
+  var themeHistory = [];      /* 历史壁纸，随 content/theme.json 持久化 */
+  var pendingUploads = [];    /* 待发布图片：{ rel, b64, url } */
+  var pendingDeletes = [];    /* 待删除的仓库图片路径 */
+  var localPreview = { guest: "", admin: "" };  /* 未发布图片的本地 object URL */
+  var historyTarget = "guest";/* 历史项「使用」应用到哪一侧 */
   var themeDirty = false;
   var content = null;      /* 内容 JSON */
   var contentDirty = false;
@@ -91,14 +96,17 @@
   }
 
   function loadTheme() {
-    return fetch("/content/theme.json?t=" + Date.now())
+    return fetch("/content/theme.json?t=" + Date.now(), { cache: "no-store" })
       .then(function (r) {
         if (!r.ok) throw new Error("theme");
         return r.json();
       })
       .then(function (t) {
+        /* 有未发布的本地改动时不覆盖，避免迟到的响应把刚选好的壁纸冲回旧值 */
+        if (themeDirty) return;
         themeState.guest = (t && t.guest) || DEFAULT_WALLPAPER;
         themeState.admin = (t && t.admin) || DEFAULT_WALLPAPER;
+        themeHistory = (t && Array.isArray(t.history)) ? t.history.slice() : [];
       })
       .catch(function () {});
   }
@@ -110,6 +118,9 @@
     if (!s) return;
     s.textContent = text;
     s.classList.toggle("on", !!on);
+    /* 「未连接」用红点，其余状态（管理端 / 已连接）保持绿点 */
+    var box = s.closest ? s.closest(".nav-status") : null;
+    if (box) box.classList.toggle("is-off", text === "未连接");
   }
 
   function syncStatusForView(v) {
@@ -1085,7 +1096,59 @@
 
   /* ==========================================================================
    * 视图三：壁纸管理
+   *
+   * 图片与配置在同一次 Git Trees 提交里写入：
+   * 上传只做本地暂存，「保存并发布」一次性提交新增图片、删除记录、theme.json。
+   * 原先「先 PUT 图片、再另起提交写配置」会因 GET ref 命中缓存拿到旧 head，
+   * 导致配置提交失败或被回滚，表现为换壁纸不生效。
    * ======================================================================== */
+
+  function stamp(ts) {
+    var d = new Date(ts || Date.now());
+    var p = function (n) { return n < 10 ? "0" + n : String(n); };
+    return p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+  }
+
+  function histLabel(it) {
+    return (it.side === "admin" ? "管理端" : "访客端") + " · " + (it.at || "已上传");
+  }
+
+  function histHtml() {
+    if (!themeHistory.length) {
+      return '<div class="hist-empty">还没有历史壁纸，上传一张后会出现在这里</div>';
+    }
+    return themeHistory.map(function (it, i) {
+      return '<div class="hist-item" data-i="' + i + '">' +
+        '<div class="hist-thumb"><img src="' + esc(it.thumb || it.url) + '" alt="' + esc(it.name || "") + '" loading="lazy"></div>' +
+        '<div class="hist-meta">' +
+          '<span class="hist-name">' + esc(it.name || it.url) + '</span>' +
+          '<span class="hist-sub">' + esc(histLabel(it)) + '</span>' +
+        '</div>' +
+        '<div class="hist-actions">' +
+          '<button class="hist-use" data-hist="use" data-i="' + i + '">使用</button>' +
+          '<button class="hist-del" data-hist="del" data-i="' + i + '">删除</button>' +
+        '</div>' +
+      '</div>';
+    }).join("");
+  }
+
+  function renderHistory() {
+    var box = $("histGrid");
+    if (box) box.innerHTML = histHtml();
+    [].forEach.call(document.querySelectorAll("#histTarget button"), function (b) {
+      b.classList.toggle("on", b.getAttribute("data-target") === historyTarget);
+    });
+  }
+
+  function serializeTheme() {
+    return JSON.stringify({
+      guest: themeState.guest,
+      admin: themeState.admin,
+      history: themeHistory.map(function (it) {
+        return { url: it.url, name: it.name, side: it.side, at: it.at, ts: it.ts || 0 };
+      })
+    }, null, 2) + "\n";
+  }
 
   function themeHtml() {
     return '<div class="theme-main">' +
@@ -1111,6 +1174,17 @@
           '</div>' +
         '</section>' +
       '</div>' +
+      '<section class="adm-panel theme-history">' +
+        '<div class="theme-history-head">' +
+          '<div class="theme-name">历史记录 <span class="hintline" style="display:inline">点「使用」切换当前壁纸</span></div>' +
+          '<div class="hist-target" id="histTarget">' +
+            '<span>应用到</span>' +
+            '<button data-target="guest">访客端</button>' +
+            '<button data-target="admin">管理端</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="hist-grid" id="histGrid">' + histHtml() + '</div>' +
+      '</section>' +
       '<div class="theme-foot">' +
         '<div class="adm-msg" id="msg"></div>' +
         '<button class="adm-save" id="saveBtn">保存并发布</button>' +
@@ -1120,117 +1194,229 @@
 
   function refreshPreview(side) {
     var el = $("prev-" + side);
-    if (el) el.src = themeState[side];
+    if (el) el.src = localPreview[side] || themeState[side];
   }
 
   function applyThemeLocal() {
-    applyAdminWallpaper(themeState.admin);
+    applyAdminWallpaper(localPreview.admin || themeState.admin);
   }
 
+  /* 上传只压缩并暂存在内存，不发网络请求；发布由 saveTheme 一次完成 */
   function uploadWallpaper(side, file) {
-    var tk = token();
-    if (!tk) { msg("请先填入令牌并连接", "err"); return; }
     if (file.size > 20 * 1024 * 1024) { msg("图片超过 20MB，请压缩后再传", "err"); return; }
 
-    msg("压缩并上传中…");
+    msg("处理图片中…");
 
-    /* 先压缩再上传：体积降到十分之一，上传与后续提交都明显更快 */
     compressImage(file).then(function (out) {
-      var sizeKB = Math.round(out.size / 1024);
-      var isJpg = /jpeg|jpg/i.test(out.type);
-      var ext = isJpg ? "jpg"
-        : (String(out.name).toLowerCase().match(/\.(png|jpe?g|webp|gif|avif)$/) || [0, "jpg"])[1].replace("jpeg", "jpg");
-
-      var rel = "assets/img/wallpaper-" + side + "-" + Date.now() + "." + ext;
-      var api = "https://api.github.com/repos/" + OWNER + "/" + REPO + "/contents/" + rel;
-
       return out.arrayBuffer().then(function (buf) {
-        return fetch(api, {
-          method: "PUT",
-          headers: {
-            "Authorization": "Bearer " + tk,
-            "Accept": "application/vnd.github+json",
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            message: "上传壁纸（" + side + "）：" + out.name,
-            content: b64FromBuf(buf),
-            branch: BRANCH
-          })
+        var isJpg = /jpeg|jpg/i.test(out.type);
+        var ext = isJpg ? "jpg"
+          : (String(out.name).toLowerCase().match(/\.(png|jpe?g|webp|gif|avif)$/) || [0, "jpg"])[1].replace("jpeg", "jpg");
+
+        var ts = Date.now();
+        var rel = "assets/img/wallpaper-" + side + "-" + ts + "." + ext;
+        var url = "/" + rel;
+        var thumb = URL.createObjectURL(out);
+
+        pendingUploads.push({ rel: rel, b64: b64FromBuf(buf), url: url });
+        themeHistory.unshift({
+          url: url, name: out.name, side: side, at: stamp(ts), ts: ts, thumb: thumb
         });
-      }).then(function (r) {
-        if (!r.ok) return r.text().then(function () { throw new Error("上传失败 " + r.status); });
-        themeState[side] = "/" + rel;
-        refreshPreview(side);
+
+        themeState[side] = url;
+        localPreview[side] = thumb;
         themeDirty = true;
+        refreshPreview(side);
+        renderHistory();
         applyThemeLocal();
-        msg("已上传（" + sizeKB + " KB），点「保存并发布」后生效", "ok");
+        msg("已加入待发布（" + Math.round(buf.byteLength / 1024) + " KB），点「保存并发布」后生效", "ok");
       });
-    }).catch(function (e) { msg(e.message, "err"); });
+    }).catch(function (e) { msg(e.message || "图片处理失败", "err"); });
   }
 
+  /* GitHub API 统一入口：GET 用时间戳 + cache:no-store 绕开缓存，错误带出服务端 message。
+     不要加自定义请求头：GitHub API 的 CORS 白名单不含它们，会触发预检失败 */
+  function ghApi(path, options) {
+    var o = options || {};
+    var headers = {
+      "Authorization": "Bearer " + token(),
+      "Accept": "application/vnd.github+json"
+    };
+    if (o.bodyHeaders) {
+      for (var k in o.bodyHeaders) if (Object.prototype.hasOwnProperty.call(o.bodyHeaders, k)) headers[k] = o.bodyHeaders[k];
+    }
+    return fetch("https://api.github.com/repos/" + OWNER + "/" + REPO + path, {
+      method: o.method || "GET",
+      headers: headers,
+      body: o.body,
+      cache: "no-store"
+    }).then(function (r) {
+      return r.text().then(function (text) {
+        var data = null;
+        try { data = JSON.parse(text); } catch (e) {}
+        if (!r.ok) {
+          var why = (data && data.message) ? data.message : ("HTTP " + r.status);
+          throw new Error(why + "（" + r.status + "）");
+        }
+        return data;
+      });
+    });
+  }
+
+  function ghJson(path, method, payload) {
+    return ghApi(path, {
+      method: method,
+      bodyHeaders: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+  }
+
+  /* Pages 构建期间先用本地图，正式地址可访问后自动切回 */
+  function switchToRemoteUrls() {
+    ["guest", "admin"].forEach(function (side) {
+      if (!localPreview[side]) return;
+      var url = themeState[side];
+      var tries = 0;
+      var probe = function () {
+        var im = new Image();
+        im.onload = function () {
+          localPreview[side] = "";
+          themeHistory.forEach(function (it) { if (it.url === url) it.thumb = ""; });
+          var src = url + "?v=" + Date.now();
+          var prev = $("prev-" + side);
+          if (prev && themeState[side] === url) prev.src = src;
+          if (side === "admin") paintWallpaper(src);
+          renderHistory();
+        };
+        im.onerror = function () {
+          if (++tries < 8) window.setTimeout(probe, 3000);
+        };
+        im.src = url + "?v=" + Date.now();
+      };
+      window.setTimeout(probe, 1500);
+    });
+  }
+
+  /* 一次提交同时写入新增图片、删除记录与 theme.json，避免多次提交之间的竞态 */
   async function saveTheme() {
-    var tk = token();
-    if (!tk) { msg("请先填入令牌并连接", "err"); return; }
+    if (!token()) { msg("请先填入令牌并连接", "err"); return; }
+    if (!themeDirty && !pendingUploads.length && !pendingDeletes.length) {
+      msg("没有待发布的改动", "ok");
+      return;
+    }
 
     var btn = $("saveBtn");
     if (btn) btn.disabled = true;
     msg("提交中…");
 
-    var api = "https://api.github.com/repos/" + OWNER + "/" + REPO;
-    var H = { "Authorization": "Bearer " + tk, "Accept": "application/vnd.github+json" };
-    var HJ = { "Authorization": "Bearer " + tk, "Accept": "application/vnd.github+json", "Content-Type": "application/json" };
-
     try {
-      var head = await fetch(api + "/git/ref/heads/" + BRANCH, { headers: H }).then(function (r) {
-        if (r.status === 401) throw new Error("令牌无效或已过期");
-        if (r.status === 404) throw new Error("找不到仓库或分支");
-        return r.json();
-      });
+      var head = await ghApi("/git/ref/heads/" + BRANCH + "?t=" + Date.now());
       var headSha = head.object.sha;
+      var base = await ghApi("/git/commits/" + headSha + "?t=" + Date.now());
 
-      var commit = await fetch(api + "/git/commits/" + headSha, { headers: H }).then(function (r) { return r.json(); });
+      var entries = [];
 
-      var blob = await fetch(api + "/git/blobs", {
-        method: "POST", headers: HJ,
-        body: JSON.stringify({ content: JSON.stringify({ guest: themeState.guest, admin: themeState.admin }, null, 2) + "\n", encoding: "utf-8" })
-      }).then(function (r) {
-        if (!r.ok) throw new Error("写入文件失败");
-        return r.json();
+      /* 新增图片：先建 blob，再挂进同一棵树 */
+      for (var i = 0; i < pendingUploads.length; i++) {
+        var up = pendingUploads[i];
+        var b = await ghJson("/git/blobs", "POST", { content: up.b64, encoding: "base64" });
+        entries.push({ path: up.rel, mode: "100644", type: "blob", sha: b.sha });
+      }
+
+      /* sha 为 null 的 tree entry 表示从新树里删掉该路径 */
+      for (var j = 0; j < pendingDeletes.length; j++) {
+        entries.push({ path: pendingDeletes[j], mode: "100644", type: "blob", sha: null });
+      }
+
+      var cfg = await ghJson("/git/blobs", "POST", { content: serializeTheme(), encoding: "utf-8" });
+      entries.push({ path: "content/theme.json", mode: "100644", type: "blob", sha: cfg.sha });
+
+      var tree = await ghJson("/git/trees", "POST", { base_tree: base.tree.sha, tree: entries });
+      var commit = await ghJson("/git/commits", "POST", {
+        message: "壁纸更新：" + new Date().toISOString().slice(0, 16).replace("T", " "),
+        tree: tree.sha,
+        parents: [headSha]
       });
+      await ghJson("/git/refs/heads/" + BRANCH, "PATCH", { sha: commit.sha });
 
-      var newTree = await fetch(api + "/git/trees", {
-        method: "POST", headers: HJ,
-        body: JSON.stringify({
-          base_tree: commit.tree.sha,
-          tree: [{ path: "content/theme.json", mode: "100644", type: "blob", sha: blob.sha }]
-        })
-      }).then(function (r) { return r.json(); });
-
-      var newCommit = await fetch(api + "/git/commits", {
-        method: "POST", headers: HJ,
-        body: JSON.stringify({
-          message: "壁纸更新：" + new Date().toISOString().slice(0, 16).replace("T", " "),
-          tree: newTree.sha,
-          parents: [headSha]
-        })
-      }).then(function (r) { return r.json(); });
-
-      await fetch(api + "/git/refs/heads/" + BRANCH, {
-        method: "PATCH", headers: HJ,
-        body: JSON.stringify({ sha: newCommit.sha })
-      }).then(function (r) {
-        if (!r.ok) throw new Error("更新分支失败");
-        return r.json();
-      });
-
+      pendingUploads = [];
+      pendingDeletes = [];
       themeDirty = false;
-      msg("已提交，刷新页面即可看到新壁纸", "ok");
+      msg("已发布，稍等片刻刷新即可看到新壁纸", "ok");
+      switchToRemoteUrls();
     } catch (e) {
-      msg(e.message, "err");
+      msg(e.message || "提交失败", "err");
     }
 
     if (btn) btn.disabled = false;
+  }
+
+  function useHistory(i) {
+    var it = themeHistory[i];
+    if (!it) return;
+    themeState[historyTarget] = it.url;
+    localPreview[historyTarget] = "";
+    themeDirty = true;
+    refreshPreview(historyTarget);
+    applyThemeLocal();
+    renderHistory();
+    msg("已设为" + (historyTarget === "guest" ? "访客端" : "管理端") + "壁纸，点「保存并发布」后生效", "ok");
+  }
+
+  function deleteHistory(i) {
+    var it = themeHistory[i];
+    if (!it) return;
+    if (!window.confirm("删除这张历史壁纸？仓库里的图片文件也会一并删除。")) return;
+
+    var rel = String(it.url || "").replace(/^\//, "");
+    var staged = pendingUploads.some(function (u) { return u.rel === rel; });
+    if (staged) {
+      pendingUploads = pendingUploads.filter(function (u) { return u.rel !== rel; });
+    } else if (/^assets\/img\/wallpaper-(guest|admin)-\d+\./.test(rel)) {
+      if (pendingDeletes.indexOf(rel) < 0) pendingDeletes.push(rel);
+    }
+
+    themeHistory.splice(i, 1);
+    ["guest", "admin"].forEach(function (side) {
+      if (themeState[side] === it.url) {
+        themeState[side] = DEFAULT_WALLPAPER;
+        localPreview[side] = "";
+        refreshPreview(side);
+      }
+    });
+    themeDirty = true;
+    applyThemeLocal();
+    renderHistory();
+    msg("已从列表移除，点「保存并发布」后生效", "ok");
+  }
+
+  /* 历史记录以 theme.json 为准；有令牌时再扫一次仓库，补回散落的旧壁纸 */
+  function scanRepoHistory() {
+    if (!token()) return;
+    ghApi("/contents/assets/img?ref=" + BRANCH + "&t=" + Date.now()).then(function (list) {
+      if (!Array.isArray(list)) return;
+      var known = {};
+      themeHistory.forEach(function (it) { known[it.url] = 1; });
+      var added = 0;
+      list.forEach(function (f) {
+        if (f.type !== "file" || !/^wallpaper-(guest|admin)-\d+\./.test(f.name)) return;
+        var url = "/" + f.path;
+        if (known[url]) return;
+        var m = f.name.match(/-(\d{10,})\./);
+        var ts = m ? Number(m[1]) : 0;
+        themeHistory.push({
+          url: url, name: f.name,
+          side: /^wallpaper-admin-/.test(f.name) ? "admin" : "guest",
+          at: ts ? stamp(ts) : "", ts: ts
+        });
+        known[url] = 1;
+        added++;
+      });
+      if (added) {
+        themeHistory.sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
+        renderHistory();
+      }
+    }).catch(function () {});
   }
 
   function mountTheme() {
@@ -1245,10 +1431,11 @@
 
         if (act === "reset") {
           themeState[side] = DEFAULT_WALLPAPER;
+          localPreview[side] = "";
           refreshPreview(side);
           themeDirty = true;
           applyThemeLocal();
-          msg("已切回默认壁纸，记得点保存", "ok");
+          msg("已切回默认壁纸，点「保存并发布」后生效", "ok");
           return;
         }
 
@@ -1264,6 +1451,27 @@
       });
     }
 
+    var target = $("histTarget");
+    if (target) {
+      target.addEventListener("click", function (e) {
+        var b = e.target.closest ? e.target.closest("button[data-target]") : null;
+        if (!b) return;
+        historyTarget = b.getAttribute("data-target");
+        renderHistory();
+      });
+    }
+
+    var hist = $("histGrid");
+    if (hist) {
+      hist.addEventListener("click", function (e) {
+        var b = e.target.closest ? e.target.closest("button[data-hist]") : null;
+        if (!b) return;
+        var i = Number(b.getAttribute("data-i"));
+        if (b.getAttribute("data-hist") === "use") useHistory(i);
+        else deleteHistory(i);
+      });
+    }
+
     var tokenSave = $("tokenSave");
     if (tokenSave) {
       tokenSave.addEventListener("click", function () {
@@ -1274,6 +1482,7 @@
         $("tokenRow").style.display = "none";
         setStatus("已连接", true);
         msg("已保存令牌到本机浏览器", "ok");
+        scanRepoHistory();
       });
     }
 
@@ -1285,7 +1494,9 @@
     loadTheme().then(function () {
       refreshPreview("guest");
       refreshPreview("admin");
+      renderHistory();
       applyThemeLocal();
+      scanRepoHistory();
     });
   }
 

@@ -1,14 +1,7 @@
 {
-  "guest": "/assets/img/wallpaper-guest-1794054853450.jpg",
+  "guest": "/assets/img/wallpaper-guest-1794045247621.jpg",
   "admin": "/assets/img/wallpaper.jpg",
   "history": [
-    {
-      "url": "/assets/img/wallpaper-guest-1794054853450.jpg",
-      "name": "e2e.jpg",
-      "side": "guest",
-      "at": "11-07 20:34",
-      "ts": 1794054853450
-    },
     {
       "url": "/assets/img/wallpaper-guest-1794045247621.jpg",
       "name": "wallpaper-guest-1794045247621.jpg",

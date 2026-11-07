@@ -317,6 +317,57 @@
 }
 .theme-foot .adm-msg { margin: 0 0 0 0; text-align: left; flex: 1; }
 
+/* ---- 壁纸历史记录：两列卡片，操作按钮为气泡 ---- */
+.theme-history { margin-top: 18px; padding: 18px; }
+.theme-history-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
+}
+.theme-history-head .theme-name { margin-bottom: 0; }
+.hist-target { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--fg-3); }
+.hist-target button {
+  padding: 5px 12px; border-radius: 999px; cursor: pointer; font-size: 12px;
+  color: var(--fg-2); background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.12); font-family: inherit; transition: .2s;
+}
+.hist-target button.on {
+  color: #2F7BFF; background: rgba(47,123,255,.12); border-color: rgba(47,123,255,.48);
+}
+
+.hist-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.hist-empty {
+  grid-column: 1 / -1; padding: 28px 0;
+  text-align: center; font-size: 12.5px; color: var(--fg-3);
+}
+.hist-item {
+  border-radius: 14px; overflow: hidden;
+  background: rgba(255,255,255,.035);
+  border: 1px solid rgba(255,255,255,.1);
+}
+.hist-thumb { aspect-ratio: 16 / 9; background: rgba(255,255,255,.04); overflow: hidden; }
+.hist-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.hist-meta { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px 0; }
+.hist-name {
+  font-size: 12.5px; color: var(--fg);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.hist-sub { font-size: 11px; color: var(--fg-3); }
+.hist-actions { display: flex; gap: 8px; padding: 10px 12px 12px; }
+.hist-actions button {
+  flex: 0 0 auto; padding: 7px 18px; border-radius: 999px;
+  font-size: 12.5px; font-weight: 600; font-family: inherit;
+  cursor: pointer; transition: .2s;
+}
+/* 使用：蓝字气泡 */
+.hist-use {
+  color: #2F7BFF; background: rgba(47,123,255,.1);
+  border: 1px solid rgba(47,123,255,.42);
+}
+.hist-use:hover { background: rgba(47,123,255,.2); }
+/* 删除：红底白字气泡 */
+.hist-del { color: #fff; background: #E5484D; border: 1px solid #E5484D; }
+.hist-del:hover { background: #F26A6E; border-color: #F26A6E; }
+
 /* 管理端气泡有五个，补上第 4、5 个的弹起延迟，保持依次弹起的节奏 */
 .bubbles.play .bubble:nth-child(4) { animation-delay: .41s, 1.5s; }
 .bubbles.play .bubble:nth-child(5) { animation-delay: .52s, 1.6s; }
@@ -340,6 +391,7 @@
   .adm-manual { padding: 8px 14px; font-size: 12px; }
   .theme-main { padding: 8px 14px 32px; }
   .theme-grid { grid-template-columns: 1fr; }
+  .hist-grid { grid-template-columns: 1fr; }
 }
 
 /* ============================================================================

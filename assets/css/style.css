@@ -223,6 +223,11 @@ html.intro-on .nav {
   animation: pulse 2.8s ease-in-out infinite;
   flex-shrink: 0;
 }
+/* 内容 / 壁纸页未连接时状态点转红，已连接保持绿 */
+.nav-status.is-off .dot {
+  background: #E5484D;
+  box-shadow: 0 0 0 3px rgba(229, 72, 77, .18);
+}
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
 
 .nav-ico {
