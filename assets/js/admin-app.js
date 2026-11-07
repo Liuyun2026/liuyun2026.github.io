@@ -327,7 +327,7 @@
             '<button data-type="projects" class="on">项目</button>' +
             '<button data-type="notes">笔记</button>' +
             '<button data-type="files">资料</button>' +
-            '<button data-type="journal">日志</button>' +
+            '<button data-type="journal">日志与碎碎念</button>' +
           '</div>' +
           '<div id="list"></div>' +
           '<button class="adm-add" id="addBtn">+ 新建一条</button>' +

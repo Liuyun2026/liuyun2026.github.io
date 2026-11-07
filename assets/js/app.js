@@ -534,15 +534,12 @@
       return (b.date || "").localeCompare(a.date || "");
     });
     return {
-      title: S.meta.name + "的日志",
+      title: S.meta.name + "的日志与碎碎念",
       html: '<div class="wrap">' +
         '<section class="block">' +
           secHead("JOURNAL", "日志与碎碎念", all.length + " 条") +
           '<div class="jlist">' +
             (all.length ? all.map(journalRow).join("") : '<div class="empty">还没有记录</div>') +
-          "</div>" +
-          '<div class="hint">' +
-            "随手记的短动态，一条一个日期。在管理端「内容」的日志标签里添加，保存后即发布。" +
           "</div>" +
         "</section>" +
       "</div>",
