@@ -32,6 +32,7 @@
   var themeDirty = false;
   var content = null;      /* 内容 JSON */
   var contentDirty = false;
+  var contentStub = false; /* content 是未连接时生成的空基线，连接后要重新从远端载入 */
 
   /* ---------- 通用工具 ---------- */
 
@@ -96,6 +97,9 @@
   }
 
   function loadTheme() {
+    /* 未连接时不读取壁纸状态：.bg 直接用 CSS 里的默认壁纸，
+       预览与历史保持默认空态。上传仍走本地暂存，不依赖这次读取 */
+    if (!token()) return Promise.resolve();
     return fetch("/content/theme.json?t=" + Date.now(), { cache: "no-store" })
       .then(function (r) {
         if (!r.ok) throw new Error("theme");
@@ -1068,6 +1072,7 @@
         $("tokenRow").style.display = "none";
         setStatus("已连接", true);
         msg("已保存令牌到本机浏览器", "ok");
+        loadContent();
       });
     }
 
@@ -1075,12 +1080,33 @@
       if ($("tokenRow")) $("tokenRow").style.display = "none";
     }
 
-    /* 载入内容；失败时给出提示，不阻塞界面 */
-    if (content) {
+    loadContent();
+  }
+
+  /* 内容读取只在已连接时发生。未连接时给一份空基线：列表与编辑区都是空的，
+     新建与插图控件照常可用，只是不发起任何请求。
+     连接后 contentStub 仍为真，会重新从远端载入并覆盖这份空基线。 */
+  function loadContent() {
+    if (!token()) {
+      if (!content) {
+        content = {};
+        PARTS.forEach(function (k) { content[k] = []; });
+        contentStub = true;
+      }
+      renderList();
+      renderEdit();
+      return;
+    }
+
+    /* 已从远端载入过就不再重复请求 */
+    if (content && !contentStub) {
       renderList();
       if (content[curType] && content[curType].length) select(0);
       return;
     }
+
+    /* 有未保存的改动时不覆盖 */
+    if (contentDirty) return;
 
     var bust = "?t=" + Date.now();
     Promise.all(PARTS.map(function (k) {
@@ -1089,13 +1115,16 @@
         return r.json();
       });
     })).then(function (arr) {
+      if (contentDirty) return;
       /* 按 PARTS 顺序装入，缺字段或响应异常时补空数组，避免切标签报错 */
       content = {};
       PARTS.forEach(function (k, i) {
         content[k] = Array.isArray(arr[i]) ? arr[i] : [];
       });
+      contentStub = false;
       renderList();
       if (content[curType] && content[curType].length) select(0);
+      else renderEdit();
     }).catch(function () {
       msg("内容加载失败", "err");
     });
@@ -1205,7 +1234,11 @@
   }
 
   function applyThemeLocal() {
-    applyAdminWallpaper(localPreview.admin || themeState.admin);
+    /* 本地上传的预览不依赖连接，照常显示；
+       否则未连接时不动 .bg，让 CSS 里的默认壁纸原样生效 */
+    if (localPreview.admin) { applyAdminWallpaper(localPreview.admin); return; }
+    if (!token()) return;
+    applyAdminWallpaper(themeState.admin);
   }
 
   /* 上传只压缩并暂存在内存，不发网络请求；发布由 saveTheme 一次完成 */
@@ -1509,7 +1542,7 @@
         $("tokenRow").style.display = "none";
         setStatus("已连接", true);
         msg("已保存令牌到本机浏览器", "ok");
-        scanRepoHistory();
+        refreshThemeView();
       });
     }
 
@@ -1518,6 +1551,12 @@
 
     if (token() && $("tokenRow")) $("tokenRow").style.display = "none";
 
+    refreshThemeView();
+  }
+
+  /* 壁纸页刷新：未连接时 loadTheme 直接短路，预览与历史停在默认值，
+     .bg 不动，仍显示 CSS 里的默认壁纸 */
+  function refreshThemeView() {
     loadTheme().then(function () {
       refreshPreview("guest");
       refreshPreview("admin");
