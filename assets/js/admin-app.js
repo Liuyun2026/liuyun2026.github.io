@@ -171,11 +171,6 @@
           }).join("") +
         '</nav>' +
       '</div>' +
-    '</div>' +
-    /* 开场文字层：独立于卡片，只跟随位移不参与缩放 */
-    '<div class="intro-layer">' +
-      '<div class="intro-hello"><span>你</span><span>好</span></div>' +
-      '<div class="intro-welcome">欢迎来到<span class="hl">流雲</span>的创客空间</div>' +
     '</div>';
   }
 
@@ -202,7 +197,7 @@
     clearIntroTimers();
 
     var card = document.querySelector(".jelly");
-    var layer = document.querySelector(".intro-layer");
+    var layer = document.getElementById("introLayer");
 
     if (card) {
       card.style.transition = "transform .32s cubic-bezier(.3,1,.4,1), border-radius .28s ease";
@@ -219,26 +214,47 @@
     introOff();
   }
 
-  /* short = 视图切换时的短版：只弹气泡，不再全屏重演。
-     整页进入 /admin/ 时的完整版沿用原时间轴。 */
-  function playIntro(short) {
-    var card = document.querySelector(".jelly");
-    var layer = document.querySelector(".intro-layer");
-    var bubbles = document.querySelector(".bubbles");
+  /* 版本自检未结束前不启动时间轴：旧 HTML 会被 vercheck 重载，
+     若中途启动就会出现片头播一半后整段重播。请求异常时 2 秒兜底放行。 */
+  function afterVerCheck(fn) {
+    var vc = window.__VERCHECK__;
+    if (!vc || typeof vc.then !== "function") { fn(); return; }
+    var fired = false;
+    var go = function () { if (fired) return; fired = true; fn(); };
+    vc.then(go);
+    window.setTimeout(go, 2000);
+  }
 
+  /* short = SPA 内切回主页的短版：只弹气泡，不受版本自检阻塞。
+     整页进入 /admin/ 时播完整版，沿用原时间轴。 */
+  function playIntro(short) {
+    var bubbles = document.querySelector(".bubbles");
     var done = function () { if (bubbles) bubbles.classList.add("play"); };
+
+    if (short) { introOff(); done(); return; }
+    afterVerCheck(function () { playIntroNow(done); });
+  }
+
+  function playIntroNow(done) {
+    var card = document.querySelector(".jelly");
+    /* 静态首屏层由 admin/index.html 提供，不在视图 HTML 里重建 */
+    var layer = document.getElementById("introLayer");
+    var boot = document.getElementById("introBoot");
 
     if (!card || !layer) { introOff(); done(); return; }
     if (reduceMotion()) { introOff(); done(); return; }
 
-    if (short) { introOff(); done(); return; }
-
-    /* 无论播不播，先撤掉待播状态：卡片此刻要么由 is-intro 接管，要么正常显示 */
+    /* 撤掉待播状态：卡片此刻由 is-intro 接管显示 */
     document.documentElement.classList.remove("intro-pending");
 
     var hello = layer.querySelector(".intro-hello");
     var welcome = layer.querySelector(".intro-welcome");
     if (!hello || !welcome) { introOff(); done(); return; }
+
+    /* 静态层首帧已显示「你好」；清掉上一轮留下的状态再接管时间轴 */
+    hello.classList.remove("out");
+    welcome.classList.remove("in");
+    hello.classList.add("show");
 
     var r = card.getBoundingClientRect();
     if (!r.width || !r.height) { introOff(); done(); return; }
@@ -255,6 +271,9 @@
 
     card.style.transformOrigin = "50% 50%";
     card.style.transform = move + " scale(" + s + ")";
+
+    /* 卡片已铺满且与静态底同色，此时淡出静态底，画面不出现空档 */
+    if (boot) boot.classList.add("fade");
 
     layer.style.transform = "translate3d(0,0,0)";
     layer.classList.add("on");
@@ -284,7 +303,7 @@
         layer.style.transition = "";
       }, 60);
       introOff();
-      if (bubbles) bubbles.classList.add("play");
+      done();
       introRunning = false;
     }, 3900);
   }
@@ -292,16 +311,6 @@
   var firstAdmRender = true;
 
   function mountHome() {
-    /* 动画结束前点击任意处可跳过 */
-    var guard = function (e) {
-      if (!document.documentElement.classList.contains("intro-on")) return;
-      if (e.cancelable) e.preventDefault();
-      e.stopPropagation();
-      skipIntro();
-    };
-    document.addEventListener("touchstart", guard, { capture: true, passive: false });
-    document.addEventListener("mousedown", guard, true);
-
     /* 整页进入播完整版；SPA 内切回主页播短版（只弹气泡） */
     playIntro(!firstAdmRender);
   }
@@ -1320,6 +1329,16 @@
   });
 
   /* ---------- 启动 ---------- */
+
+  /* 片头期间任意处按下即跳过；监听只注册一次，避免每次切回主页重复叠加 */
+  function introGuard(e) {
+    if (!document.documentElement.classList.contains("intro-on")) return;
+    if (e.cancelable) e.preventDefault();
+    e.stopPropagation();
+    skipIntro();
+  }
+  document.addEventListener("touchstart", introGuard, { capture: true, passive: false });
+  document.addEventListener("mousedown", introGuard, true);
 
   loadTheme().then(function () { applyThemeLocal(); });
   render(viewOfPath());

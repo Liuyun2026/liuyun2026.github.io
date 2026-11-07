@@ -271,12 +271,6 @@
           '</nav>' +
         '</div>' +
 
-        /* 开场文字层：独立于卡片，只跟随位移不参与缩放，字号恒定 */
-        '<div class="intro-layer">' +
-          '<div class="intro-hello"><span>你</span><span>好</span></div>' +
-          '<div class="intro-welcome">欢迎来到<span class="hl">流雲</span>的创客空间</div>' +
-        '</div>' +
-
         '<div class="wrap home-more">' +
           '<section class="block">' +
             secHead("PROJECTS", "项目", S.projects.length + " 个") +
@@ -664,7 +658,7 @@
     clearIntroTimers();
 
     var card = document.querySelector(".jelly");
-    var layer = document.querySelector(".intro-layer");
+    var layer = document.getElementById("introLayer");
 
     if (card) {
       card.style.transition = "transform .32s cubic-bezier(.3,1,.4,1), border-radius .28s ease";
@@ -683,9 +677,26 @@
     window.scrollTo(0, 0);
   }
 
+  /* 版本自检未结束前不启动时间轴：旧 HTML 会被 vercheck 重载，
+     若中途启动就会出现片头播一半后整段重播。请求异常时 2 秒兜底放行。 */
+  function afterVerCheck(fn) {
+    var vc = window.__VERCHECK__;
+    if (!vc || typeof vc.then !== "function") { fn(); return; }
+    var fired = false;
+    var go = function () { if (fired) return; fired = true; fn(); };
+    vc.then(go);
+    window.setTimeout(go, 2000);
+  }
+
   function playIntro() {
+    afterVerCheck(playIntroNow);
+  }
+
+  function playIntroNow() {
     var card = document.querySelector(".jelly");
-    var layer = document.querySelector(".intro-layer");
+    /* 静态首屏层由 index.html 提供，不在视图 HTML 里重建 */
+    var layer = document.getElementById("introLayer");
+    var boot = document.getElementById("introBoot");
     /* 提前退出时必须解锁，否则顶栏/页脚会被首屏脚本藏死 */
     var done = function () {
       var bs = document.querySelector(".bubbles");
@@ -702,6 +713,11 @@
     var hello = layer.querySelector(".intro-hello");
     var welcome = layer.querySelector(".intro-welcome");
     if (!hello || !welcome) { introOff(); done(); return; }
+
+    /* 静态层首帧已显示「你好」；清掉上一轮留下的状态再接管时间轴 */
+    hello.classList.remove("out");
+    welcome.classList.remove("in");
+    hello.classList.add("show");
 
     var r = card.getBoundingClientRect();
     if (!r.width || !r.height) { introOff(); done(); return; }
@@ -720,6 +736,9 @@
        这样任意缩放倍数下圆角占宽度的比例恒定，全程都是气泡形态 */
     card.style.transformOrigin = "50% 50%";
     card.style.transform = move + " scale(" + s + ")";
+
+    /* 卡片已铺满且与静态底同色，此时淡出静态底，画面不出现空档 */
+    if (boot) boot.classList.add("fade");
 
     /* 文字层本身就居中于视口，而气泡放大后中心也在视口中心，
        所以开场不需要位移；收缩时再反向跟随气泡回到原位 */
@@ -780,7 +799,7 @@
     window.scrollTo(0, 0);
 
     /* 同步启动：内容刚写入 DOM、尚未绘制，此时上加缩放变换不会闪出原位 */
-    if (introPending && !location.hash.replace(/^#\/?/, "").split("/")[0]) {
+    if (introPending && currentPath() === "/" && !location.hash.replace(/^#\/?/, "").split("/")[0]) {
       introPending = false;
       playIntro();
     }

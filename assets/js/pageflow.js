@@ -119,8 +119,8 @@
     } catch (e) {}
     if (!came) return;
 
-    /* 有开场动画的页面由动画接管，不叠加淡入 */
-    if (document.querySelector(".intro-layer")) return;
+    /* 有开场动画的页面由动画接管，不叠加淡入。
+       静态首屏层在所有页面都存在，不能用它判断，只认 html.intro-on */
     if (document.documentElement.classList.contains("intro-on")) return;
 
     document.body.classList.add("pf-entering");

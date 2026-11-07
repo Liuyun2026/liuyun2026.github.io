@@ -12,30 +12,49 @@
  * 守卫值记的是「重载目标版本」，发现 build.json 与本地不一致时，
  * 若守卫值已等于目标版本，说明上一次重载也没能拿到新版（CDN 未切换等），
  * 本轮直接放弃，绝不循环。
+ *
+ * window.__VERCHECK__：向开场动画暴露自检结论。
+ * 版本一致（或放弃重载）时 resolve；确认要重载时保持 pending，页面随即卸载。
+ * 开场动画等这个 Promise 才启动时间轴，避免播到一半被重载后重播一次。
  * ========================================================================== */
 
 (function () {
   "use strict";
 
   var local = window.__BUILD__;
-  if (!local || !window.fetch || !window.sessionStorage) return;
+  var NEVER = new Promise(function () {});
+
+  if (!local || !window.fetch || !window.sessionStorage) {
+    window.__VERCHECK__ = Promise.resolve(true);
+    return;
+  }
 
   var guardKey = "build-reloaded";
 
-  fetch("/content/build.json?t=" + Date.now(), { cache: "no-store" })
+  /* 请求挂住时主动放弃自检：宁可看旧页面，也不能让片头播到一半再被重载 */
+  var ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+  var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 1500) : null;
+
+  window.__VERCHECK__ = fetch("/content/build.json?t=" + Date.now(),
+      { cache: "no-store", signal: ctrl ? ctrl.signal : undefined })
     .then(function (res) {
       if (!res.ok) throw new Error("build.json");
       return res.json();
     })
     .then(function (info) {
+      if (timer) clearTimeout(timer);
       var remote = info && info.v;
-      if (!remote || remote === local) return;
+      if (!remote || remote === local) return true;
 
+      var guarded = true;
       try {
         /* 这个目标版本已经试过一次仍拿不到，放弃，避免刷新循环 */
-        if (sessionStorage.getItem(guardKey) === remote) return;
+        if (sessionStorage.getItem(guardKey) === remote) return true;
         sessionStorage.setItem(guardKey, remote);
-      } catch (e) {}
+      } catch (e) { guarded = false; }
+
+      /* 守卫值写不进去时不重载，否则每轮都会重载，形成死循环 */
+      if (!guarded) return true;
 
       /* 保留原有查询参数（如 from=admin），只替换或追加 v 作为缓存破坏符 */
       var params = [];
@@ -47,6 +66,12 @@
       }
       params.push("v=" + remote);
       location.replace(location.pathname + "?" + params.join("&"));
+
+      /* 页面即将卸载，时间轴不启动，静态首屏保持显示到新页面接手 */
+      return NEVER;
     })
-    .catch(function () {});
+    .catch(function () {
+      if (timer) clearTimeout(timer);
+      return true;
+    });
 })();
