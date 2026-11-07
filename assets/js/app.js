@@ -727,9 +727,8 @@
     };
     if (!card || !layer) { introOff(); done(); return; }
 
-    /* 撤掉待播状态；若接着播片头，is-intro 会在同一帧接管显示 */
-    document.documentElement.classList.remove("intro-pending");
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      document.documentElement.classList.remove("intro-pending");
       introOff(); done(); return;
     }
 
@@ -753,7 +752,12 @@
 
     introRunning = true;
     document.documentElement.classList.add("intro-on");
+
+    /* 先上片头配方，再撤待播隐藏，两件事必须在同一帧完成。
+       中间隔一次绘制的话，卡片会先以默认的半透明玻璃样式画一帧
+       （能看清背后壁纸），再切成片头的深色底，看上去就是「先透后糊」跳一下 */
     card.classList.add("is-intro");
+    document.documentElement.classList.remove("intro-pending");
 
     /* 气泡：位移 + 等比放大。圆角不做任何覆盖，保持 44px，
        这样任意缩放倍数下圆角占宽度的比例恒定，全程都是气泡形态 */
