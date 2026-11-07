@@ -1149,3 +1149,21 @@ main .block:nth-of-type(3) { animation-delay: .14s; }
   .nav-links a { padding: 5px 6px; font-size: 12px; }
   .nav-links--admin a { padding: 5px 5px; font-size: 11.5px; }
 }
+
+/* ---- 跨页面跳转过渡（pageflow.js 配合） ---- */
+/* 切出：整页淡出，避免点击后立即白屏 */
+html.pf-leaving body {
+  opacity: 0;
+  transition: opacity .15s ease;
+  pointer-events: none;
+}
+/* 进入：从透明淡入，与切出的淡出连成一次过渡 */
+body.pf-entering { animation: pf-fade-in .22s ease both; }
+@keyframes pf-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.pf-leaving body { transition: none; }
+  body.pf-entering { animation: none; }
+}
