@@ -1606,11 +1606,18 @@
     var target = pathOfView(v);
     transitioning = true;
 
-    /* 只动 #admView：壁纸 .bg 与顶栏 .nav 是它的兄弟节点，不参与过渡 */
+    /* 视图的横向顺序：往右是后面的视图，滑动方向据此决定 */
     var from = ADM_ORDER.indexOf(current);
     var to = ADM_ORDER.indexOf(v);
     var outX = (from >= 0 && to >= 0 && to < from) ? 34 : -34;
     var inX = -outX;
+
+    /* 位移加在视图内容上，容器 #admView 自己不动。
+       让容器做 translateX 会把它整体推到视口右缘之外，撑出横向滚动条；
+       横向滚动条吃掉 15px 视口高度，position: fixed 的 .bg 跟着变矮，
+       background-size: cover 重新计算，表现就是壁纸上下伸缩。
+       容器不动就不会越界，过渡期间再加 overflow: hidden 兜底。 */
+    function box() { return root.firstElementChild; }
 
     var swap = function () {
       if (push) {
@@ -1618,30 +1625,38 @@
       }
       render(v);
 
-      root.style.transition = "none";
-      root.style.opacity = "0";
-      root.style.transform = "translateX(" + inX + "px)";
-      void root.offsetWidth;
-      root.style.transition = "opacity .26s ease, transform .34s cubic-bezier(.2,1,.3,1)";
-      root.style.opacity = "1";
-      root.style.transform = "none";
+      var b = box();
+      if (!b) { root.style.overflow = ""; transitioning = false; return; }
+
+      b.style.transition = "none";
+      b.style.opacity = "0";
+      b.style.transform = "translateX(" + inX + "px)";
+      void b.offsetWidth;
+      b.style.transition = "opacity .26s ease, transform .34s cubic-bezier(.2,1,.3,1)";
+      b.style.opacity = "1";
+      b.style.transform = "none";
 
       window.setTimeout(function () {
-        root.style.transition = "";
-        root.style.opacity = "";
-        root.style.transform = "";
+        b.style.transition = "";
+        b.style.opacity = "";
+        b.style.transform = "";
+        root.style.overflow = "";
         transitioning = false;
       }, 360);
     };
 
-    root.style.transition = "opacity .17s ease, transform .17s ease";
-    root.style.opacity = "0";
-    root.style.transform = "translateX(" + outX + "px)";
+    root.style.overflow = "hidden";
+
+    var b0 = box();
+    if (b0) {
+      b0.style.transition = "opacity .17s ease, transform .17s ease";
+      b0.style.opacity = "0";
+      b0.style.transform = "translateX(" + outX + "px)";
+    }
 
     if (reduceMotion()) {
-      root.style.transition = "";
-      root.style.opacity = "";
-      root.style.transform = "";
+      root.style.overflow = "";
+      if (b0) { b0.style.transition = ""; b0.style.opacity = ""; b0.style.transform = ""; }
       transitioning = false;
       if (push) { try { history.pushState({ v: v }, "", target); } catch (e) {} }
       render(v);
