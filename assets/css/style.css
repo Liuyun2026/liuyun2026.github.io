@@ -1135,6 +1135,7 @@ main .block:nth-of-type(3) { animation-delay: .14s; }
   .nitem .arrow { display: none; }
   .frow { grid-template-columns: 52px minmax(0, 1fr) 44px; gap: 12px; padding: 14px 18px; }
   .frow .fsize { display: none; }
+  .jlist { padding: 16px 20px 4px; }
   .search { margin-left: 0; width: 100%; }
   .search input { width: 100%; }
   .pcard { padding: 20px 20px; }
@@ -1179,8 +1180,19 @@ body.pf-entering { animation: pf-fade-in .22s ease both; }
 html.from-admin [data-nav-extra] { display: block; }
 /* 访客端不该出现的入口，从管理端进来时才露出 */
 
-/* ---- 日志与碎碎念：时间线 ---- */
-.jlist { position: relative; }
+/* ---- 日志与碎碎念：时间线 ----
+   容器与 .nlist / .flist 同款玻璃卡片，空状态也有边框承载 */
+.jlist {
+  position: relative;
+  padding: 20px 26px 6px;
+  border-radius: var(--r);
+  overflow: hidden;
+  background: linear-gradient(158deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .022));
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  backdrop-filter: blur(22px) saturate(170%);
+  border: 1px solid var(--edge);
+  box-shadow: var(--sh), var(--inner);
+}
 .jrow {
   position: relative;
   padding: 16px 0 18px 26px;
