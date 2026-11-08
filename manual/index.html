@@ -9,28 +9,38 @@
 /* 玻璃档位与访客端同一套：首帧前套用本机记住的档位，手册页的玻璃面板才不会用错材质 */
 try { if (localStorage.getItem("glass-guest") === "clear") document.documentElement.classList.add("glass-clear"); } catch (e) {}
 </script>
-<link rel="stylesheet" href="/assets/css/style.css?v=202611080828">
-<link rel="stylesheet" href="/assets/css/admin.css?v=202611080828">
+<link rel="stylesheet" href="/assets/css/style.css?v=202611080836">
+<link rel="stylesheet" href="/assets/css/admin.css?v=202611080836">
 <style>
-  /* 手册页是正常滚动的长文档，顶栏要贴住。
-     admin.css 里的 .adm-nav 是 relative（管理端由 .page 自己滚，顶栏不用粘），
-     这里改回 sticky，和访客端一致 */
-  .adm-nav { position: sticky; top: 0; }
-  /* sticky 只对「真正在滚的那个盒子」生效。style.css 给 body 写了 overflow-x: hidden，
-     按规范另一轴的 visible 会被算成 auto，body 于是也成了滚动容器（虽然它自己不滚），
-     顶栏就会跟着内容一起滚走。overflow-x: clip 同样是裁切，但不建立滚动容器 */
+  /* 手册页不放整条顶栏，只留一个返回键：固定在左上角，玻璃参数与顶栏同一套，
+     跟着玻璃档位走。body 用 clip 而不是 hidden，避免多出一个不滚动的滚动容器 */
   body { overflow-x: clip; }
-
-  .doc-top {
-    max-width: 840px; margin: 0 auto;
-    padding: 22px 26px 10px;
-    display: flex; align-items: center; gap: 18px;
+  .doc-back {
+    position: fixed; left: 20px; top: 16px; z-index: 60;
+    display: inline-flex; align-items: center;
+    font: inherit; font-size: 13px; line-height: 1;
+    padding: 9px 15px; border-radius: 999px;
+    color: var(--fg-2); cursor: pointer;
+    background: var(--g-nav-bg);
+    border: 1px solid var(--g-nav-edge);
+    -webkit-backdrop-filter: blur(var(--g-nav-blur)) saturate(var(--g-nav-sat));
+    backdrop-filter: blur(var(--g-nav-blur)) saturate(var(--g-nav-sat));
+    box-shadow: var(--g-nav-sh);
+    transition: color .2s, border-color .2s;
   }
-  .doc-top a { font-size: 13px; color: var(--fg-3); }
-  .doc-top a:hover { color: var(--accent); }
-  .doc-top .sp { margin-left: auto; }
+  .doc-back:hover { color: #fff; border-color: var(--edge-hi); }
 
-  .doc-wrap { max-width: 840px; margin: 0 auto; padding: 0 26px 60px; }
+  /* 正文底板：与主卡同一套底色与描边，但**不挂 backdrop-filter**——
+     这是几千像素高的长文档，实时模糊一整块不划算；壁纸本身已经够软，
+     少这层模糊看不出来。底下再垫一层半透明深色，保证透明档下文字也压得住 */
+  .doc-wrap {
+    max-width: 860px; margin: 64px auto 56px;
+    padding: 38px 34px 46px;
+    border-radius: 22px;
+    background: linear-gradient(180deg, rgba(7, 9, 16, .46), rgba(7, 9, 16, .54)), var(--g-jelly-bg);
+    border: 1px solid var(--g-jelly-edge);
+    box-shadow: var(--g-sh);
+  }
 
   .doc-prose { max-width: none; }
   .doc-prose h1 {
@@ -82,17 +92,17 @@ try { if (localStorage.getItem("glass-guest") === "clear") document.documentElem
   .doc-prose a { color: var(--accent); }
 
   @media (max-width: 680px) {
-    .doc-top, .doc-wrap { padding-left: 18px; padding-right: 18px; }
+    .doc-wrap { padding-left: 20px; padding-right: 20px; }
     .doc-prose h1 { font-size: 21px; }
     .doc-prose h2 { font-size: 17px; }
     .doc-prose table { font-size: 12px; }
     .doc-prose th, .doc-prose td { padding: 7px 10px; }
   }
 </style>
-<script src="/assets/js/pageflow.js?v=202611080828"></script>
-<script src="/assets/js/bg.js?v=202611080828"></script>
-<script>window.__BUILD__="202611080828";</script>
-<script src="/assets/js/vercheck.js?v=202611080828"></script>
+<script src="/assets/js/pageflow.js?v=202611080836"></script>
+<script src="/assets/js/bg.js?v=202611080836"></script>
+<script>window.__BUILD__="202611080836";</script>
+<script src="/assets/js/vercheck.js?v=202611080836"></script>
 </head>
 <body>
 
@@ -107,27 +117,21 @@ try { if (localStorage.getItem("glass-guest") === "clear") document.documentElem
 })();
 </script>
 
-<header class="nav adm-nav">
-  <div class="nav-inner">
-    <a class="brand" href="/admin/">
-      <span class="mark">L</span>
-      <span class="brand-txt">流雲</span>
-    </a>
-    <nav class="nav-links">
-      <a href="/admin/">首页</a>
-      <a href="/projects?from=admin">项目</a>
-      <a href="/notes?from=admin">笔记</a>
-      <a href="/files?from=admin">资料</a>
-      <a href="/manage/?from=admin">内容</a>
-      <a href="/theme/?from=admin">壁纸</a>
-    </nav>
-    <div class="nav-right">
-      <span class="nav-status"><i class="dot"></i><span>操作手册</span></span>
-            <a class="adm-visit" href="/" title="去访客站">访客站</a>
-      <a class="nav-ico" href="https://github.com/Liuyun2026" target="_blank" rel="noopener" aria-label="GitHub"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A7.995 7.995 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
-    </div>
-  </div>
-</header>
+<button type="button" class="doc-back" id="docBack">← 返回</button>
+
+<script>
+/* 哪来的回哪：同源来路才回退，否则（直接粘地址打开）回首页，别把人带出站 */
+(function () {
+  var btn = document.getElementById("docBack");
+  if (!btn) return;
+  btn.addEventListener("click", function () {
+    var same = false;
+    try { same = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (e) {}
+    if (same && history.length > 1) history.back();
+    else location.href = "/";
+  });
+})();
+</script>
 
 <main class="doc-wrap">
   <article class="prose doc-prose" id="doc">
