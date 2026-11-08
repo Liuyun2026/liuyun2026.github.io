@@ -288,10 +288,10 @@
     var welcome = layer.querySelector(".intro-welcome");
     if (!hello || !welcome) { introOff(); done(); return; }
 
-    /* 静态层首帧已显示「你好」；清掉上一轮留下的状态再接管时间轴 */
+    /* 清掉上一轮留下的退场状态再接管时间轴。
+       「你好」的入场动画由 html.intro-go 触发（见 style.css），不在这里加类 */
     hello.classList.remove("out");
     welcome.classList.remove("in");
-    hello.classList.add("show");
 
     var r = card.getBoundingClientRect();
     if (!r.width || !r.height) { introOff(); done(); return; }
@@ -315,7 +315,10 @@
     layer.style.transform = "translate3d(0,0,0)";
     layer.classList.add("on");
 
-    introLater(function () { hello.classList.add("show"); }, 120);
+    /* 等接管这一阵过去再让字浮上来：接管要重算整屏背板，字排在它后面才不卡 */
+    introLater(function () {
+      document.documentElement.classList.add("intro-go");
+    }, 170);
     introLater(function () { hello.classList.add("out"); }, 1250);
     introLater(function () { welcome.classList.add("in"); }, 1700);
 
