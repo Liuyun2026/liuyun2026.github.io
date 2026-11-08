@@ -742,6 +742,15 @@
     return String(n).replace(/[\\/:*?"<>|#%]/g, "_").replace(/\s+/g, "-");
   }
 
+  /* 一个条目一个文件夹：content/<类型>/<id | 名称 | 日期>/
+     附件与插图都落在自己条目下面，跟文字（content/*.json）分开但挨着。
+     id 是稳定键；files / journal 没有 id，就退回名称 / 日期 */
+  function itemFolder(it, type) {
+    var t = type || curType;
+    var key = (it && (it.id || it.name || it.title || it.date)) || "misc";
+    return t + "/" + safeName(String(key));
+  }
+
   function uploadOne(file, folder, sub) {
     var tk = token();
     if (!tk) return Promise.reject(new Error("请先填入令牌并连接"));
@@ -749,7 +758,7 @@
       return Promise.reject(new Error(file.name + " 超过 20MB，建议放网盘"));
     }
 
-    var rel = "assets/uploads/" + folder + "/" + (sub ? sub + "/" : "") + Date.now() + "-" + safeName(file.name);
+    var rel = "content/" + folder + "/" + (sub ? sub + "/" : "") + Date.now() + "-" + safeName(file.name);
     var api = "https://api.github.com/repos/" + OWNER + "/" + REPO + "/contents/" + encodeURI(rel);
 
     return file.arrayBuffer().then(function (buf) {
@@ -772,7 +781,8 @@
     });
   }
 
-  function pickImage(ta) {
+  /* 正文插图：落在当前条目的 content/<类型>/<id>/images/ 下 */
+  function pickImage(ta, it) {
     var inp = document.createElement("input");
     inp.type = "file";
     inp.accept = "image/*";
@@ -781,7 +791,7 @@
       var f = inp.files[0];
       msg("压缩并上传中…");
       compressImage(f).then(function (out) {
-        return uploadOne(out, "images", "").then(function (url) {
+        return uploadOne(out, itemFolder(it), "images").then(function (url) {
           insertAt(ta, "![" + out.name.replace(/\.[^.]+$/, "") + "](" + url + ")");
           msg("图片已插入（" + Math.round(out.size / 1024) + " KB），记得保存", "ok");
         });
@@ -825,7 +835,7 @@
       var files = Array.prototype.slice.call(inp.files);
       if (!files.length) return;
       msg("上传中，共 " + files.length + " 个文件…");
-      var done = 0, folder = (curType === "notes" ? "notes/" : "projects/") + safeName(it.id || "misc");
+      var done = 0, folder = itemFolder(it);
 
       files.reduce(function (chain, f) {
         return chain.then(function () {
@@ -1121,7 +1131,7 @@
         var ta = wrap.querySelector('textarea[data-k="body"]');
         if (!ta) return;
         var kind = b.getAttribute("data-ins");
-        if (kind === "image") { pickImage(ta); return; }
+        if (kind === "image") { pickImage(ta, it); return; }
         var snip = {
           h2: "\n## 小标题\n",
           ul: "\n- 列表项\n- 列表项\n",
@@ -1139,7 +1149,7 @@
     if (jimg) {
       jimg.addEventListener("click", function () {
         var ta = wrap.querySelector('textarea[data-k="text"]');
-        if (ta) pickImage(ta);
+        if (ta) pickImage(ta, it);
       });
     }
 
