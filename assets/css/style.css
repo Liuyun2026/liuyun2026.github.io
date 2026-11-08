@@ -597,7 +597,6 @@ html.intro-on footer {
 footer { transition: opacity .45s ease, visibility 0s linear 0s; }
 
 /* 片头期间锁死整页：不能滚动、不能双指缩放、不能滑动切页 */
-html.intro-on,
 html.intro-on {
   overflow: hidden;
   height: 100%;

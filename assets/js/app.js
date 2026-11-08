@@ -263,7 +263,8 @@
               '<span class="jelly-tag">你好</span>' +
               '<h1>欢迎来到<span class="hl">流雲</span>的创客空间</h1>' +
               '<div class="jelly-meta">' +
-                '<span class="pill"><i class="dot"></i>站点</span>' +
+                '<span class="pill"><i class="dot"></i>' +
+                  esc((S.meta && S.meta.status) || "站点") + '</span>' +
                 '<a class="pill pill--link" href="' + esc(S.meta.github) + '" target="_blank" rel="noopener">GitHub ↗</a>' +
               '</div>' +
             '</div>' +
@@ -666,11 +667,11 @@
      在真机上直接掉帧。所以反过来选：模糊恒定，让它在收缩过程中随缩放自然收敛，
      落定那一帧正好是设计值，一样没有跳变。 */
 
-  /* 解锁页面：顶栏、页脚恢复显示 */
+  /* 解锁页面：顶栏、页脚恢复显示。
+     玻璃档位理论上在片头开始前就落定了，flushGlass 只是兜住「数据在片头中途才回来」
+     这一支（pendingGlass 非空时才会真的做事） */
   function introOff() {
     document.documentElement.classList.remove("intro-on", "intro-pending");
-    /* 片头结束，补上等待中的壁纸与档位 */
-    if (typeof flushWallpaper === "function") flushWallpaper();
     flushGlass();
   }
 
@@ -684,9 +685,8 @@
     var layer = document.getElementById("introLayer");
 
     if (card) {
-      card.style.transition = "transform .32s cubic-bezier(.3,1,.4,1), border-radius .28s ease";
+      card.style.transition = "transform .32s cubic-bezier(.3,1,.4,1)";
       card.style.transform = "";
-      card.style.borderRadius = "";
       card.classList.remove("is-intro");
       window.setTimeout(function () { card.style.transition = ""; }, 340);
     }
@@ -768,7 +768,6 @@
 
     /* 气泡：位移 + 等比放大。圆角不做任何覆盖，保持 44px，
        这样任意缩放倍数下圆角占宽度的比例恒定，全程都是气泡形态 */
-    card.style.transformOrigin = "50% 50%";
     card.style.transform = move + " scale(" + s + ")";
 
     /* 静态层与卡片都带一层白膜，两层叠着的那几帧整屏会亮一截——看上去就是
@@ -813,10 +812,6 @@
       layer.style.transition = "none";
       layer.style.transform = "";
       window.setTimeout(function () { layer.style.transition = ""; }, 60);
-      /* 必须走 introOff 收尾，不能只 remove("intro-on")：
-         片头期间 applyWallpaper 会把壁纸地址挂进 pendingWallpaper，
-         由 introOff 里的 flushWallpaper 补上。直接移除类名会让它永远挂着，
-         首页就一直停在 CSS 的默认壁纸，表现为「换了壁纸没反应」 */
       introOff();
       var bubbles = document.querySelector(".bubbles");
       if (bubbles) bubbles.classList.add("play");
@@ -932,29 +927,15 @@
 
   /* ---------- 静态部分 ---------- */
 
-  /* 壁纸由 content/theme.json 决定，缺省时用内置图。
-     先离屏解码再换背景：直接赋值会在主线程解码整图，若正好撞上开场动画就掉帧。
-     片头播放期间先挂起，动画结束后再换，避免抢动画的帧。 */
-  var pendingWallpaper = "";
-
+  /* 换壁纸：由 content/theme.json 的 guest 字段决定。
+     解码、挂地址、淡入那一套在 index.html 的首屏脚本里，挂在 window.__bgPaint 上，
+     这里只负责记住地址再转交——两处各写一份的结果是改一处忘一处 */
   function paintWallpaper(url) {
-    var bg = document.querySelector(".bg");
-    if (!bg || !url) return;
+    if (!url) return;
     /* 记住这张地址：下次进入首屏直接用它，不必等 theme.json 回来，
        否则会先显示默认图、再看着它换成用户那张 */
     try { localStorage.setItem("bg-guest", url); } catch (e) {}
-    var probe = new Image();
-    probe.decoding = "async";
-    var show = function () {
-      bg.style.backgroundImage = 'url("' + url + '")';
-      /* 解码完成后才亮：边下边挂会让图片从上往下一段段画出来 */
-      bg.classList.add("bg-on");
-    };
-    probe.onload = function () {
-      if (probe.decode) probe.decode().then(show, show); else show();
-    };
-    probe.onerror = show;
-    probe.src = url;
+    if (typeof window.__bgPaint === "function") window.__bgPaint(url);
   }
 
   /* 玻璃质感由 theme.json 的 glass 字段决定：clear 为透明，其余按磨砂。
@@ -990,22 +971,9 @@
     pendingGlass = null;
   }
 
-  function applyWallpaper(url) {
-    if (!url) return;
-    /* 不再等片头结束再换图：越早换，越能藏在片头的覆盖层下面完成。
-       预加载用 decoding: async，不会抢动画的帧 */
-    paintWallpaper(url);
-  }
-
-  /* 片头结束时由 introOff 调用，补上被挂起的壁纸 */
-  function flushWallpaper() {
-    if (!pendingWallpaper) return;
-    var url = pendingWallpaper;
-    pendingWallpaper = "";
-    paintWallpaper(url);
-  }
-
   function initStatic() {
+    /* 顶栏那颗小胶囊是「站点」标签，不是状态条：
+       meta.json 的 status 是一句话，放这儿会把横栏撑变形，它显示在首页主卡里 */
     document.getElementById("navStatus").textContent = "站点";
     document.getElementById("navGithub").href = S.meta.github;
     document.getElementById("footLinks").innerHTML =
@@ -1076,7 +1044,7 @@
         },
         projects: arr[1], notes: arr[2], files: arr[3], journal: arr[4], theme: arr[5]
       };
-      applyWallpaper(S.theme && S.theme.guest);
+      paintWallpaper(S.theme && S.theme.guest);
       applyGlass(S.theme && S.theme.glass);
       initStatic();
       render();
