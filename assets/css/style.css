@@ -520,10 +520,14 @@ html.intro-go .intro-hello span:nth-child(2) { animation-delay: .13s; }
 }
 
 .intro-welcome {
-  font-size: clamp(21px, 6.2vw, 32px);
+  /* 与「你好」(clamp 58/13vw/92) 同一量级、略小一档：
+     12 个字要在一行里站住，所以上限压在 76px；窄屏靠 5.2vw 自然收，
+     最低 30px，实在放不下就折成两行 */
+  max-width: 94vw;
+  font-size: clamp(30px, 5.2vw, 76px);
   font-weight: 800;
-  letter-spacing: .02em;
-  line-height: 1.5;
+  letter-spacing: .01em;
+  line-height: 1.28;
   color: #FFFFFF;
   text-align: center;
   text-shadow: 0 0 26px rgba(150, 195, 255, .45);
