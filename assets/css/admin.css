@@ -495,9 +495,11 @@
    壁纸 .bg 留在 .page 外面，尺寸只跟视口有关；滚动条再怎么出现、切换时
    视图再怎么位移，都挤不动它，cover 也就不会重新缩放。
    .page 上的 scrollbar-gutter 保证它自己的滚动条槽位恒定，顶栏不会横向抽动；
-   overflow-x: hidden 负责裁掉 #admView 切换时的 translateX 溢出。 */
-html,
-body { height: 100%; overflow: hidden; }
+   overflow-x: hidden 负责裁掉 #admView 切换时的 translateX 溢出。
+   这条锁只挂在 html.adm-shell 上（管理员三页的 <html> 类名）：
+   admin.css 也被 /manual/ 加载，写死成全局规则会把手册页锁成不能滚动的长条。 */
+html.adm-shell,
+html.adm-shell body { height: 100%; overflow: hidden; }
 body { display: block; }
 .page {
   position: absolute;

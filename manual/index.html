@@ -5,9 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>操作手册 · 流雲的创客空间</title>
 <meta name="color-scheme" content="dark">
-<link rel="stylesheet" href="/assets/css/style.css?v=202611080815">
-<link rel="stylesheet" href="/assets/css/admin.css?v=202611080815">
+<script>
+/* 玻璃档位与访客端同一套：首帧前套用本机记住的档位，手册页的玻璃面板才不会用错材质 */
+try { if (localStorage.getItem("glass-guest") === "clear") document.documentElement.classList.add("glass-clear"); } catch (e) {}
+</script>
+<link rel="stylesheet" href="/assets/css/style.css?v=202611080828">
+<link rel="stylesheet" href="/assets/css/admin.css?v=202611080828">
 <style>
+  /* 手册页是正常滚动的长文档，顶栏要贴住。
+     admin.css 里的 .adm-nav 是 relative（管理端由 .page 自己滚，顶栏不用粘），
+     这里改回 sticky，和访客端一致 */
+  .adm-nav { position: sticky; top: 0; }
+  /* sticky 只对「真正在滚的那个盒子」生效。style.css 给 body 写了 overflow-x: hidden，
+     按规范另一轴的 visible 会被算成 auto，body 于是也成了滚动容器（虽然它自己不滚），
+     顶栏就会跟着内容一起滚走。overflow-x: clip 同样是裁切，但不建立滚动容器 */
+  body { overflow-x: clip; }
+
   .doc-top {
     max-width: 840px; margin: 0 auto;
     padding: 22px 26px 10px;
@@ -76,13 +89,23 @@
     .doc-prose th, .doc-prose td { padding: 7px 10px; }
   }
 </style>
-<script src="/assets/js/pageflow.js?v=202611080815"></script>
-<script>window.__BUILD__="202611080815";</script>
-<script src="/assets/js/vercheck.js?v=202611080815"></script>
+<script src="/assets/js/pageflow.js?v=202611080828"></script>
+<script src="/assets/js/bg.js?v=202611080828"></script>
+<script>window.__BUILD__="202611080828";</script>
+<script src="/assets/js/vercheck.js?v=202611080828"></script>
 </head>
 <body>
 
 <div class="bg" aria-hidden="true"></div>
+
+<script>
+/* 手册页借一张壁纸：与访客端同一张（本机记住的那张，没记过用默认图） */
+(function () {
+  try {
+    window.__bgPaint(localStorage.getItem("bg-guest") || "/assets/img/wallpaper.jpg");
+  } catch (e) {}
+})();
+</script>
 
 <header class="nav adm-nav">
   <div class="nav-inner">

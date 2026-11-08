@@ -9,10 +9,11 @@
 <meta name="theme-color" content="#070910">
 <link rel="preload" as="image" href="/assets/img/wallpaper.jpg">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237FB2FF'/%3E%3Cstop offset='1' stop-color='%234FE3C1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='%230B0F16'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='15' font-weight='bold' fill='url(%23g)' text-anchor='middle'%3EL%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="/assets/css/style.css?v=202611080815">
-<script src="/assets/js/pageflow.js?v=202611080815"></script>
-<script>window.__BUILD__="202611080815";</script>
-<script src="/assets/js/vercheck.js?v=202611080815"></script>
+<link rel="stylesheet" href="/assets/css/style.css?v=202611080828">
+<script src="/assets/js/pageflow.js?v=202611080828"></script>
+<script src="/assets/js/bg.js?v=202611080828"></script>
+<script>window.__BUILD__="202611080828";</script>
+<script src="/assets/js/vercheck.js?v=202611080828"></script>
 </head>
 <body>
 
@@ -66,24 +67,8 @@
 <div class="bg" aria-hidden="true"></div>
 
 <script>
-/* 换壁纸只有这一份实现：解码完成后才挂地址、再淡入。
-   边下边挂的话浏览器会从上往下一段段画，就是「上半张出来了、下面没有」。
-   首屏在这里用一次；app.js 读到 theme.json 要换图时调同一个函数，
-   免得两处各写一遍、改一处忘一处 */
-window.__bgPaint = function (url) {
-  var bg = document.querySelector(".bg");
-  if (!bg || !url) return;
-  var show = function () {
-    bg.style.backgroundImage = 'url("' + url + '")';
-    bg.classList.add("bg-on");
-  };
-  var img = new Image();
-  img.decoding = "async";
-  img.onload = function () { if (img.decode) img.decode().then(show, show); else show(); };
-  img.onerror = show;
-  img.src = url;
-};
-/* 首屏先用上次记住的那张（没记过就用默认图），不必等 theme.json 回来 */
+/* 首屏先用上次记住的那张（没记过就用默认图），不必等 theme.json 回来。
+   实现见 assets/js/bg.js，那边是唯一的壁纸逻辑 */
 (function () {
   try {
     window.__bgPaint(localStorage.getItem("bg-guest") || "/assets/img/wallpaper.jpg");
@@ -135,6 +120,6 @@ window.__bgPaint = function (url) {
   </div>
 </footer>
 
-<script src="/assets/js/app.js?v=202611080815"></script>
+<script src="/assets/js/app.js?v=202611080828"></script>
 </body>
 </html>

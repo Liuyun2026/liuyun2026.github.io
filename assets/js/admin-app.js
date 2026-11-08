@@ -87,16 +87,11 @@
   var pendingWallpaper = "";
 
   function paintWallpaper(url) {
-    var bg = document.querySelector(".bg");
-    if (!bg || !url) return;
+    if (!url) return;
     /* 同访客端：记住地址，供下次首屏直接使用 */
     try { localStorage.setItem("bg-admin", url); } catch (e) {}
-    var probe = new Image();
-    probe.decoding = "async";
-    probe.onload = function () {
-      bg.style.backgroundImage = 'url("' + url + '")';
-    };
-    probe.src = url;
+    /* 解码、挂地址、淡入都在 assets/js/bg.js 里，三端共用一个实现 */
+    if (typeof window.__bgPaint === "function") window.__bgPaint(url);
   }
 
   function applyAdminWallpaper(url) {
@@ -1522,10 +1517,15 @@
   }
 
   function applyThemeLocal() {
-    /* 本地上传的预览不依赖连接，照常显示；
-       否则未连接时不动 .bg，让 CSS 里的默认壁纸原样生效 */
+    /* 本地上传的预览不依赖连接，照常显示 */
     if (localPreview.admin) { applyAdminWallpaper(localPreview.admin); applyGlass(); return; }
-    if (!token()) return;
+    if (!token()) {
+      /* 未连接时不读线上配置，但页面不能没有背景：
+         .bg 默认 opacity: 0，必须有人点亮它——用本机记住的那张，没有就用默认图 */
+      paintWallpaper(localStorage.getItem("bg-admin") || DEFAULT_WALLPAPER);
+      applyGlass();
+      return;
+    }
     applyAdminWallpaper(themeState.admin);
     applyGlass();
   }

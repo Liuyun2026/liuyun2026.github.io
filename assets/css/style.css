@@ -498,6 +498,9 @@ html.intro-on .nav {
    播到一半被打断，看着就是「你好」硬闪出来；animation 一旦开始就不受类名影响 */
 .intro-hello span {
   display: inline-block;
+  /* 两个字各自提前提层：字是文本，不提前立层的话上浮过程中每帧都要重新栅格化，
+     收尾那一帧还会因为撤层再重画一次——就是「好」上浮时卡一下 */
+  will-change: transform, opacity;
   animation: hello-in .62s cubic-bezier(.2, 1.15, .35, 1) both;
 }
 .intro-hello span:nth-child(2) { animation-delay: .13s; }
