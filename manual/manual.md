@@ -249,31 +249,42 @@ python -m http.server 8903
 site/
 ├── index.html              访客端外壳
 ├── 404.html                深层路径兜底，发布时由 index.html 复制
+├── admin/index.html        管理端主页
 ├── manage/index.html       内容编辑器
 ├── theme/index.html        壁纸管理
 ├── manual/
 │   ├── index.html          本手册的渲染页
 │   └── manual.md           手册正文，改这个文件即可
-├── admin/index.html        管理端主页
 ├── assets/                 站点自身的代码与资源
 │   ├── css/style.css       全站样式（访客端 + 管理端共用变量）
 │   ├── css/admin.css       管理端各页布局与面板
 │   ├── js/app.js           访客端 SPA：路由、渲染、片头
 │   ├── js/admin-app.js     管理端三个视图：主页 / 内容 / 壁纸
+│   ├── js/bg.js            壁纸层：解码后才显示，三端共用
 │   ├── js/pageflow.js      独立页面之间的跳转过渡与预取
 │   ├── js/vercheck.js      版本自检，绕过 HTML 十分钟缓存
-│   ├── img/wallpaper.jpg   默认壁纸（两侧的兜底图）
-│   └── uploads/            管理端上传的图片与附件
-├── content/build.json      构建号，每次发布由脚本写入
-├── content/                内容，与管理端共用
-│   ├── meta.json
-│   ├── projects.json
-│   ├── notes.json
-│   ├── files.json
-│   ├── journal.json        日志与碎碎念
-│   └── theme.json          壁纸配置
+│   └── img/wallpaper-*.jpg 壁纸（默认图 + 你上传的）
+├── content/                内容：文字在 JSON，附件与插图在各条目的文件夹
+│   ├── meta.json           站点名 / 状态 / GitHub
+│   ├── projects.json       项目的文字
+│   ├── notes.json          笔记的文字
+│   ├── files.json          资料的文字
+│   ├── journal.json        日志的文字
+│   ├── theme.json          壁纸地址与玻璃档位
+│   ├── build.json          构建号，每次发布由脚本写入
+│   ├── projects/<项目 id>/ 这个项目的附件；正文插图在同层的 images/ 下
+│   ├── notes/<笔记 id>/
+│   ├── files/<资料名>/
+│   └── journal/<日期>/
 └── .github/workflows/pages.yml   自动部署
 ```
+
+**一条一个文件夹**：`content/` 下面按四种类型各一层，每条内容一个文件夹，第一次给它传附件或插图时才会出现。
+
+- 文件夹名优先取条目的 **id**；资料没有 id 就用名称，日志用日期。中文原样保留，空格换成 `-`。
+- **id 定了就别再改**：改了以后新上传的文件会进新文件夹，旧文件留在旧文件夹里——不丢，但会散。
+- 删条目时，连同它的文件夹一起删；只删文件夹不删条目，站点上会出现点开 404 的附件。
+- 文件夹里的文件名都带时间戳前缀（`1794099122229-原理图.pdf`），同名文件不会互相覆盖。
 
 ---
 
