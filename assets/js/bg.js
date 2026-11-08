@@ -15,22 +15,33 @@
 (function () {
   "use strict";
 
+  /* 返回一个 Promise：壁纸淡入结束才 resolve。
+     片头要等这一步——淡入的那三百毫秒里，压在它上面的整屏玻璃每帧都要
+     重算一遍背板，正好撞在「你好」两个字上，掉帧就是从这儿来的。 */
   window.__bgPaint = function (url) {
     var bg = document.querySelector(".bg");
-    if (!bg || !url) return;
+    if (!bg || !url) return Promise.resolve(false);
 
-    var show = function () {
-      bg.style.backgroundImage = 'url("' + url + '")';
-      bg.classList.add("bg-on");
-    };
+    return new Promise(function (resolve) {
+      var ended = false;
+      var end = function () { if (ended) return; ended = true; resolve(true); };
 
-    var img = new Image();
-    img.decoding = "async";
-    img.onload = function () {
-      if (img.decode) img.decode().then(show, show);
-      else show();
-    };
-    img.onerror = show;
-    img.src = url;
+      var show = function () {
+        bg.style.backgroundImage = 'url("' + url + '")';
+        bg.classList.add("bg-on");
+        var dur = parseFloat(getComputedStyle(bg).transitionDuration) || 0;
+        window.setTimeout(end, dur * 1000 + 40);
+        window.setTimeout(end, 900);
+      };
+
+      var img = new Image();
+      img.decoding = "async";
+      img.onload = function () {
+        if (img.decode) img.decode().then(show, show);
+        else show();
+      };
+      img.onerror = show;
+      img.src = url;
+    });
   };
 })();

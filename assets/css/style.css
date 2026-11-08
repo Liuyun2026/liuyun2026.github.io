@@ -499,11 +499,17 @@ html.intro-on .nav {
 .intro-hello span {
   display: inline-block;
   /* 两个字各自提前提层：字是文本，不提前立层的话上浮过程中每帧都要重新栅格化，
-     收尾那一帧还会因为撤层再重画一次——就是「好」上浮时卡一下 */
+     收尾那一帧还会因为撤层再重画一次 */
   will-change: transform, opacity;
+  opacity: 0;
+}
+/* 由 html.intro-go 触发，而不是页面一解析就播：
+   接管那一刻要重算整屏背板（实测 80–150ms），让字排在它后面起，
+   否则掉帧正好压在「你好」上 */
+html.intro-go .intro-hello span {
   animation: hello-in .62s cubic-bezier(.2, 1.15, .35, 1) both;
 }
-.intro-hello span:nth-child(2) { animation-delay: .13s; }
+html.intro-go .intro-hello span:nth-child(2) { animation-delay: .13s; }
 @keyframes hello-in {
   from { opacity: 0; transform: translateY(26px); }
   to   { opacity: 1; transform: none; }
