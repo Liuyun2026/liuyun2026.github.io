@@ -132,7 +132,10 @@ body {
   /* 地址与淡入交给脚本：图片没解码完就挂上的话，浏览器会从上往下一段段画出来，
      就是「上半张出来了、下面没有」。解完再一次性亮起来 */
   opacity: 0;
-  transition: opacity .32s ease;
+  /* 淡入越短越好：它上面压着一层整屏玻璃（磨砂档视觉半径 109px），
+     背景每变一次就要重算一遍背板，实测一帧 100ms 以上。
+     320ms 的淡入会撞出两帧长帧，压到 140ms 只剩一帧，且看不出一刀切 */
+  transition: opacity .14s ease;
   filter: brightness(1.32) saturate(1.05);
   transform: translateZ(0);
 }
