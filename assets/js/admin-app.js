@@ -548,6 +548,7 @@
         '<button data-ins="table">表格</button>' +
         '<button data-ins="link">链接</button>' +
         '<button data-ins="image">图片</button>' +
+        '<button type="button" data-import title="把 md / docx / pptx / xlsx / pdf 的文字导进来">导入文件</button>' +
       '</div>' +
       '<textarea data-k="body">' + esc((it.body || []).join("\n")) + '</textarea>' +
       (hint ? '<div class="hintline">' + hint + '</div>' : "") +
@@ -796,6 +797,31 @@
           msg("图片已插入（" + Math.round(out.size / 1024) + " KB），记得保存", "ok");
         });
       }).catch(function (e) { msg(e.message, "err"); });
+    };
+    inp.click();
+  }
+
+  /* 正文：把文档文件的文字导进光标处。
+     解析在 assets/js/import.js 里，只取文字，图片图表一律丢弃 */
+  function importDoc(ta) {
+    var inp = document.createElement("input");
+    inp.type = "file";
+    inp.accept = ".md,.markdown,.txt,.docx,.pptx,.xlsx,.pdf";
+    inp.onchange = function () {
+      var f = inp.files && inp.files[0];
+      if (!f) return;
+      if (typeof window.__docToMarkdown !== "function") {
+        msg("导入模块没加载，刷新页面再试", "err");
+        return;
+      }
+      msg("解析中…");
+      window.__docToMarkdown(f).then(function (r) {
+        if (!r.markdown) { msg("这个文件里没抽到文字", "err"); return; }
+        insertAt(ta, "\n" + r.markdown + "\n");
+        msg("已插入 " + r.markdown.length + " 字" + (r.note ? "；" + r.note : "") + "，记得保存", "ok");
+      }).catch(function (e) {
+        msg(e.message || "解析失败", "err");
+      });
     };
     inp.click();
   }
@@ -1132,6 +1158,7 @@
         if (!ta) return;
         var kind = b.getAttribute("data-ins");
         if (kind === "image") { pickImage(ta, it); return; }
+        if (kind === "import") { importDoc(ta); return; }
         var snip = {
           h2: "\n## 小标题\n",
           ul: "\n- 列表项\n- 列表项\n",
@@ -1141,6 +1168,15 @@
           link: "[文字](https://example.com)"
         };
         insertAt(ta, snip[kind] || "");
+      });
+    }
+
+    /* 导入文件：按钮是 data-import（不走 data-ins 的分发表） */
+    var imp = wrap.querySelector("[data-import]");
+    if (imp) {
+      imp.addEventListener("click", function () {
+        var ta = wrap.querySelector('textarea[data-k="body"]');
+        if (ta) importDoc(ta);
       });
     }
 
