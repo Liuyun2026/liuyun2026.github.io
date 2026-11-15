@@ -712,17 +712,9 @@
   }
 
   function playIntro() {
-    afterVerCheck(function () {
-      /* 壁纸淡入的那三百毫秒里，压在它上面的整屏玻璃每帧都要重算背板：
-         实测会在「你好」两个字之间掉两帧（83ms / 150ms）。所以先等壁纸落定，
-         这期间画面由同材质的静态首屏层顶着，看不出来。最多等 700ms */
-      var ready = window.__bgReady;
-      if (!ready || typeof ready.then !== "function") { playIntroNow(); return; }
-      var fired = false;
-      var go = function () { if (fired) return; fired = true; playIntroNow(); };
-      ready.then(go);
-      window.setTimeout(go, 700);
-    });
+    /* 不等壁纸：等的那几百毫秒画面是静止的，读起来像卡住。
+       壁纸淡入的重算交给首屏层那一次，字晚 60ms 起，避开接管那一帧 */
+    afterVerCheck(playIntroNow);
   }
 
   function playIntroNow() {
@@ -799,7 +791,7 @@
        让字排在它后面，掉帧就不会压在字上 */
     introLater(function () {
       document.documentElement.classList.add("intro-go");
-    }, 170);
+    }, 60);
 
     /* 串行节奏，总时长约五秒半 */
     introLater(function () { hello.classList.add("out"); }, 1250);
